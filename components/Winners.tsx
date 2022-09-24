@@ -53,7 +53,7 @@ const [winnerData,setWinnerData] = useState<WinnerType[] | any> ([])
     var winner: WinnerType[] = [];
       for (var i = bound.low; i < bound.high; i++) {
         winner.push(Data[i]);
-        console.log(Data[i]);
+        // console.log(Data[i]);
       }
       setWinnerData([...winnerData,winner])
     }
