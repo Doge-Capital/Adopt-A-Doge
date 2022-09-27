@@ -17,7 +17,7 @@ function EligibleNfts() {
           <h3 className="text-3xl opacity-[0.75]">50/100</h3>
         </div>
         <div className="bg-purple w-fit h-fit p-4 px-16 w-[25vw] rounded-sm font-semibold text-center">
-          <h5 className=" text-lg opacity-[0.75]">Your Tickets</h5>
+          <h5 className=" text-lg opacity-[0.75] font-medium">Your Tickets</h5>
           <h3 className="text-3xl opacity-[0.75]">0</h3>
         </div>
       </div>
@@ -33,7 +33,7 @@ function EligibleNfts() {
       </div>
       <div className="h-[20vh] fixed bottom-0 w-full px-12 bg-bg">
         <div className="border-t-[1px] border-grey">
-          <div className="text-[1.125rem] opacity-[0.75] pt-4 flex ">
+          <div className="text-[1.125rem] opacity-[0.75] pt-4 flex font-medium ">
             <h3>NFTs Selected : 00</h3>
             <h3 className="mx-12">Tickets Received : 00</h3>
           </div>

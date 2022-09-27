@@ -1,0 +1,17 @@
+
+.animated_image{
+    -webkit-animation-name: grow;   
+    -webkit-animation-duration: 2s;
+        -webkit-animation-iteration-count: infinite;
+        -webkit-animation-timing-function: linear;
+        -moz-animation-name: grow;
+        -moz-animation-duration: 2s;
+        -moz-animation-iteration-count: 4;
+        -moz-animation-timing-function: linear;
+}
+
+@-webkit-keyframes grow {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
