@@ -2,14 +2,14 @@
 seeds = false
 skip-lint = false
 [programs.localnet]
-adoptcontract = "GntfZtKwsEZyygp35RM5ooBuHirNBCEdcnGSGByAgEtF"
+adoptcontract = "6yWqtzp77Z8CfNTrd4Kc8wdBUh8xrTvSPL1NDqdpNKKU"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
 cluster = "Localnet"
-wallet = "/Users/alsjourney/.config/solana/id.json"
+wallet = "/Users/elijah/.config/solana/id.json"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
