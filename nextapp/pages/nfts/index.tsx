@@ -6,7 +6,6 @@ import Navbar from "../../components/Navbar";
 function EligibleNfts() {
     return (
         <div className=" bg-bg">
-            <Navbar />
             <div className="flex justify-evenly px-12 overflow-hidden font-inter">
                 <div className="bg-blue w-fit h-fit p-4 px-16 w-[25vw]  rounded-sm font-semibold text-center">
                     <h5 className=" text-lg opacity-[0.75] ">Current Collection</h5>
@@ -31,7 +30,7 @@ function EligibleNfts() {
                     {/* <NoELigibeNfts /> */}
                 </div>
             </div>
-            
+
             <div className="h-[20vh] fixed bottom-0 w-full px-12 bg-bg">
                 <div className="border-t-[1px] border-grey">
                     <div className="text-[1.125rem] opacity-[0.75] pt-4 flex font-medium ">
