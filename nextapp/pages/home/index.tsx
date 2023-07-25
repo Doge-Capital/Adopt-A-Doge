@@ -1,8 +1,11 @@
 import React from "react";
 import Navbar from "../../components/Navbar";
 import { Image } from "@nextui-org/react";
-import styles from '../../components/styles/animation.module.css'
+import { useRouter } from 'next/router';
+
 function Home() {
+    const router = useRouter();
+
     return (
         <div className="bg-[#F5F5F5] font-inter h-full">
             <Navbar />
@@ -100,7 +103,7 @@ function Home() {
                     </div>
                 </div>
 
-                <div className="text-lg bg-[#2278F9] px-8 rounded-full text-white w-fit flex mx-auto py-2 hover:bg-[#4f8ff0] cursor-pointer	">
+                <div className="text-xl bg-[#2278F9] px-10 rounded-full text-white w-fit flex mx-auto py-4 hover:border-[#2278F9] border-2 hover:bg-white hover:text-[#2278F9] cursor-pointer mt-14 mb-14" onClick={() => router.push('/nfts')}>
                     Get Started
                 </div>
 
