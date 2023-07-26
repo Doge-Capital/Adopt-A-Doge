@@ -2,8 +2,13 @@ import React from "react";
 import { Button } from "@nextui-org/react";
 import Nftcard from "../../components/Nftcard";
 import Navbar from "../../components/Navbar";
+import { FetchNft } from "../../context/FetchNFT";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react"
+
+
 
 function EligibleNfts() {
+    const wallet = useWallet()
     return (
         <div className=" bg-bg">
             <div className="flex justify-evenly px-12 overflow-hidden font-inter">
@@ -25,9 +30,8 @@ function EligibleNfts() {
                     Your Eligible NFTs
                 </h3>
                 <div className="h-screen ">
-                    <NFtDisplay />
-                    {/* <WalletNotConnected /> */}
-                    {/* <NoELigibeNfts /> */}
+                        { wallet.connected ? <FetchNft /> : <WalletNotConnected /> }
+                    { /* <NoELigibeNfts /> */ }
                 </div>
             </div>
 
