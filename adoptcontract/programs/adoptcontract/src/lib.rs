@@ -1,7 +1,7 @@
 use anchor_lang::{prelude::*, system_program};
 use anchor_spl::token::{self, Burn, Mint, Token, TokenAccount, CloseAccount};
 
-declare_id!("6yWqtzp77Z8CfNTrd4Kc8wdBUh8xrTvSPL1NDqdpNKKU");
+declare_id!("GENzDmiBJdg4c3LXLPdtSxTuS4hxApCyTPqs6fUBRU2p");
 
 #[program]
 pub mod adoptcontract {
