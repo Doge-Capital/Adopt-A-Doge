@@ -1,7 +1,7 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { TOKEN_PROGRAM_ID, createMint, createAssociatedTokenAccount, mintToChecked, getMint, getAccount, getAssociatedTokenAddress } from "@solana/spl-token";
-import { Metaplex, keypairIdentity } from "@metaplex-foundation/js";
+import { Metaplex, keypairIdentity, Nft } from "@metaplex-foundation/js";
 import { Adoptcontract } from "../target/types/adoptcontract";
 import { expect } from "chai";
 
@@ -15,8 +15,11 @@ describe("adoptcontract", () => {
 
     const metaplex = Metaplex.make(connection)
         .use(keypairIdentity(test_keypair));
+    const TOKEN_METADATA_PROGRAM_ID = new anchor.web3.PublicKey(
+        "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
+    );
 
-    const mintToken = async (): Promise<[anchor.web3.PublicKey, anchor.web3.PublicKey]> => {
+    const mintToken = async (): Promise<[Nft, anchor.web3.PublicKey]> => {
         // // Create mint
         // let mintPubkey = await createMint(
         //     connection, // conneciton
@@ -68,7 +71,8 @@ describe("adoptcontract", () => {
         const nftATA = await getAssociatedTokenAddress(nft.address, test_keypair.publicKey);
         console.log("NFT Token Account: " + nftATA);
 
-        return [nft.address, nftATA];
+        // return [nft.address, nftATA];
+        return [nft, nftATA];
     };
 
     // use 1-2 times on Devnet, then comment it out
@@ -87,24 +91,55 @@ describe("adoptcontract", () => {
         console.log(`Airdrop tx hash: ${airdrop_txhash}`);
     });
 
+    // it("burns an NFT and closes its TA", async () => {
+    //     console.log("Burn NFT instruction...");
+    //     const [mintPublicKey, ata] = await mintToken();
+
+    //     await connection.getTokenAccountBalance(ata).then(balance => {
+    //         console.log("Token amount before burning: " + balance.value.amount);
+    //         expect(balance.value.amount).eq("1", "Wrong token amount, should be 1");
+    //     });
+
+    //     // Add your test here.
+    //     const tx = await program.methods.burnToken()
+    //         .accounts({
+    //             mint: mintPublicKey,
+    //             from: ata,
+    //             authority: test_keypair.publicKey,
+    //             feesReceiver: test_keypair.publicKey,
+    //             tokenProgram: TOKEN_PROGRAM_ID,
+    //             systemProgram: anchor.web3.SystemProgram.programId
+    //         })
+    //         .signers([test_keypair])
+    //         .rpc();
+
+
+    //     console.log("Burning transaction signature", tx);
+
+    //     // TODO: add an assertion (TA doesn't exist and mint has 0 supply)
+    // });
+
     it("burns an NFT and closes its TA", async () => {
         console.log("Burn NFT instruction...");
-        const [mintPublicKey, ata] = await mintToken();
+        // const [mintPublicKey, ata] = await mintToken();
+        const [nft, ata] = await mintToken();
 
         await connection.getTokenAccountBalance(ata).then(balance => {
             console.log("Token amount before burning: " + balance.value.amount);
             expect(balance.value.amount).eq("1", "Wrong token amount, should be 1");
         });
 
-        // Add your test here.
-        const tx = await program.methods.burnToken()
+        console.log("Runs burnNFTs ix...");
+        const tx = await program.methods.burnNfts()
             .accounts({
-                mint: mintPublicKey,
+                mint: nft.address,
                 from: ata,
                 authority: test_keypair.publicKey,
                 feesReceiver: test_keypair.publicKey,
                 tokenProgram: TOKEN_PROGRAM_ID,
-                systemProgram: anchor.web3.SystemProgram.programId
+                tokenMetadataProgram: TOKEN_METADATA_PROGRAM_ID,
+                metadata: nft.metadataAddress,
+                masterEdition: nft.edition.address
             })
             .signers([test_keypair])
             .rpc();
