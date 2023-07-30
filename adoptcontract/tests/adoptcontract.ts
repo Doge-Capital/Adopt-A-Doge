@@ -1,6 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import { TOKEN_PROGRAM_ID, createMint, createAssociatedTokenAccount, mintToChecked, getMint, getAccount, getAssociatedTokenAddress } from "@solana/spl-token";
+import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from "@solana/spl-token";
 import { Metaplex, keypairIdentity, Nft } from "@metaplex-foundation/js";
 import { Adoptcontract } from "../target/types/adoptcontract";
 import { expect } from "chai";
@@ -20,45 +20,6 @@ describe("adoptcontract", () => {
     );
 
     const mintToken = async (): Promise<[Nft, anchor.web3.PublicKey]> => {
-        // // Create mint
-        // let mintPubkey = await createMint(
-        //     connection, // conneciton
-        //     test_keypair, // fee payer
-        //     test_keypair.publicKey, // mint authority
-        //     test_keypair.publicKey, // freeze authority (you can use `null` to disable it. when you disable it, you can't turn it on again)
-        //     0 // decimals
-        // );
-
-        // let mintAccount = await getMint(connection, mintPubkey);
-        // console.log("Mint account: " + mintAccount.address);
-
-        // // Create the token account
-        // let ata = await createAssociatedTokenAccount(
-        //     connection, // connection
-        //     test_keypair, // fee payer
-        //     mintPubkey, // mint
-        //     test_keypair.publicKey // owner,
-        // );
-
-        // let tokenAccount = await getAccount(connection, ata);
-        // console.log(`ATA address: ${tokenAccount.address}\nATA mint: ${tokenAccount.mint}\nATA owner: ${tokenAccount.owner}`);
-
-
-        // // Mint token to the account
-        // let txhash = await mintToChecked(
-        //     connection, // connection
-        //     test_keypair, // fee payer
-        //     mintPubkey, // mint
-        //     ata, // receiver (sholud be an associated token account)
-        //     test_keypair.publicKey, // mint authority
-        //     1, // amount
-        //     0 // decimals
-        // );
-
-        // console.log(`Token was minted, tx hash: ${txhash}`);
-
-        // return [mintPubkey, ata];
-
         console.log("Minting an NFT...");
         const { nft } = await metaplex.nfts().create({
             uri: "",
@@ -71,11 +32,10 @@ describe("adoptcontract", () => {
         const nftATA = await getAssociatedTokenAddress(nft.address, test_keypair.publicKey);
         console.log("NFT Token Account: " + nftATA);
 
-        // return [nft.address, nftATA];
         return [nft, nftATA];
     };
 
-    // use 1-2 times on Devnet, then comment it out
+    // use 1-2 times on Devnet, then comment it out to avoid the rate limit issue
     before("SOL airdrop", async function () {
         console.log("Airdropping SOL...");
 
@@ -91,37 +51,7 @@ describe("adoptcontract", () => {
         console.log(`Airdrop tx hash: ${airdrop_txhash}`);
     });
 
-    // it("burns an NFT and closes its TA", async () => {
-    //     console.log("Burn NFT instruction...");
-    //     const [mintPublicKey, ata] = await mintToken();
-
-    //     await connection.getTokenAccountBalance(ata).then(balance => {
-    //         console.log("Token amount before burning: " + balance.value.amount);
-    //         expect(balance.value.amount).eq("1", "Wrong token amount, should be 1");
-    //     });
-
-    //     // Add your test here.
-    //     const tx = await program.methods.burnToken()
-    //         .accounts({
-    //             mint: mintPublicKey,
-    //             from: ata,
-    //             authority: test_keypair.publicKey,
-    //             feesReceiver: test_keypair.publicKey,
-    //             tokenProgram: TOKEN_PROGRAM_ID,
-    //             systemProgram: anchor.web3.SystemProgram.programId
-    //         })
-    //         .signers([test_keypair])
-    //         .rpc();
-
-
-    //     console.log("Burning transaction signature", tx);
-
-    //     // TODO: add an assertion (TA doesn't exist and mint has 0 supply)
-    // });
-
-    it("burns an NFT and closes its TA", async () => {
-        console.log("Burn NFT instruction...");
-        // const [mintPublicKey, ata] = await mintToken();
+    it("burns an NFT and transfers fees", async () => {
         const [nft, ata] = await mintToken();
 
         await connection.getTokenAccountBalance(ata).then(balance => {
@@ -139,10 +69,13 @@ describe("adoptcontract", () => {
                 tokenProgram: TOKEN_PROGRAM_ID,
                 tokenMetadataProgram: TOKEN_METADATA_PROGRAM_ID,
                 metadata: nft.metadataAddress,
-                masterEdition: nft.edition.address
+                masterEdition: nft.edition.address,
+                systemProgram: anchor.web3.SystemProgram.programId
             })
             .signers([test_keypair])
-            .rpc();
+            .rpc({
+                skipPreflight: true
+            });
 
 
         console.log("Burning transaction signature", tx);

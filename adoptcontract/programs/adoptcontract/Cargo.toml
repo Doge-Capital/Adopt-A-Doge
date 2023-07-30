@@ -16,6 +16,9 @@ cpi = ["no-entrypoint"]
 default = []
 
 [dependencies]
-anchor-lang = "0.28.0"
-anchor-spl = { version = "0.28.0", features = ["metadata"]}
+anchor-lang = { version = "0.27.0"}
+anchor-spl = { version = "0.27.0" }
 mpl-token-metadata = { version = "1.13.0", features = ["no-entrypoint"] }
+solana-program = "=1.14.17"
+winnow="=0.4.1"
+toml_datetime="=0.6.1"
