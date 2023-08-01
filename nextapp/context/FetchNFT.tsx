@@ -66,13 +66,13 @@ export const FetchNft: FC = () => {
         )
     } else {
         return (
-            <div>
+            <>
                 {nftData && (
-                    <div className="flex gap-8 mt-4">
+                    <div className="flex flex-wrap mt-4 gap-7 justify-center">
                         {nftData.map((nft, i) => (
                             <div style={{
                                 boxShadow: ' 0px 4px 50px rgba(0, 0, 0, 0.13)'
-                            }} className='bg-white w-fit h-fit p-1 rounded-sm hover:scale-[1.02]' key={i}>
+                            }} className='bg-white h-fit p-1 rounded-sm hover:scale-[1.02]' key={i}>
                                 <div className="absolute bg-[#79BD9A] z-20 rounded-full mt-[-0.5rem] ml-[-0.5rem] border-[5px] border-bg text-lg">
                                     <Text color='white'> <BsCheck /></Text>
                                 </div>
@@ -82,7 +82,7 @@ export const FetchNft: FC = () => {
                         ))}
                     </div>
                 )}
-            </div>
+            </>
         )
     }
 }
