@@ -1,6 +1,9 @@
 use anchor_lang::{prelude::*, solana_program::program::invoke, system_program};
-use anchor_spl::token::{Mint, Token, TokenAccount};
-use mpl_token_metadata::{instruction::burn_nft, ID as TOKEN_METADATA_PROGRAM_ID};
+use anchor_spl::{
+    associated_token,
+    token::{Mint, Token, TokenAccount},
+};
+use mpl_token_metadata::{instruction::burn_nft, instruction::BurnNft, ID as TOKEN_METADATA_PROGRAM_ID};
 
 declare_id!("DruXG4fVzPmdsfMqjNyrUaBv5aTvLnP9G43jemUcX1J1");
 
@@ -8,10 +11,23 @@ declare_id!("DruXG4fVzPmdsfMqjNyrUaBv5aTvLnP9G43jemUcX1J1");
 pub mod adoptcontract {
     use super::*;
 
-    // Since we're gonna burn NFTs, we don't need to provide any bigger number for the "approve_token" ix per ATA
-    // const ONE: u64 = 1;
-
     const ADDITIONAL_TX_FEE: u64 = 8_000_000; // 0.008 SOL
+
+    pub fn burn(ctx: Context<BurnNFT>, mints: Vec<Pubkey>) -> Result<()> {
+        for mint in mints {
+            
+            let mint_key = mint.as_ref();
+            
+            let metadata_seeds = &[b"metadata", TOKEN_METADATA_PROGRAM_ID.as_ref(), mint_key];
+            let edition_seeds = &[b"metadata", TOKEN_METADATA_PROGRAM_ID.as_ref(), mint_key, b"edition"];
+            
+            let mint_ata: Pubkey = associated_token::get_associated_token_address(ctx.accounts.authority.key, &mint);
+            let (metadata_pda, _metadata_bump) = Pubkey::find_program_address(metadata_seeds, &TOKEN_METADATA_PROGRAM_ID);
+            let (edition_pda, _edition_bump) = Pubkey::find_program_address(edition_seeds, &TOKEN_METADATA_PROGRAM_ID);
+        }
+
+        Ok(())
+    }
 
     pub fn burn_nfts(ctx: Context<BurnNFTs>) -> Result<()> {
         msg!("Burning NFT...");
@@ -56,6 +72,20 @@ pub mod adoptcontract {
 }
 
 #[derive(Accounts)]
+pub struct BurnNFT<'info> {
+    pub authority: Signer<'info>,
+    #[account(
+        mut,
+        // TODO!  -  address = FEES_RECEIVER_ADDRESS
+    )]
+    pub fees_receiver: AccountInfo<'info>,
+    /// CHECK: Metaplex checks this
+    pub token_metadata_program: UncheckedAccount<'info>,
+    pub token_program: Program<'info, Token>,
+    pub system_program: Program<'info, System>
+}
+
+#[derive(Accounts)]
 pub struct BurnNFTs<'info> {
     /// CHECK: checks with constraints
     #[account(
@@ -66,10 +96,7 @@ pub struct BurnNFTs<'info> {
     )]
     pub metadata: UncheckedAccount<'info>,
     pub authority: Signer<'info>,
-    #[account(
-        mut, 
-        mint::decimals = 0
-    )]
+    #[account(mut, mint::decimals = 0)]
     pub mint: Account<'info, Mint>,
     #[account(
         mut,
