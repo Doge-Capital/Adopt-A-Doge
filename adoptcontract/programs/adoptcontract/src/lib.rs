@@ -1,9 +1,6 @@
 use anchor_lang::{prelude::*, solana_program::program::invoke, system_program};
-use anchor_spl::{
-    associated_token,
-    token::{Mint, Token, TokenAccount},
-};
-use mpl_token_metadata::{instruction::burn_nft, instruction::BurnNft, ID as TOKEN_METADATA_PROGRAM_ID};
+use anchor_spl::token::Token;
+use mpl_token_metadata::{instruction::burn_nft, ID as TOKEN_METADATA_PROGRAM_ID};
 
 declare_id!("DruXG4fVzPmdsfMqjNyrUaBv5aTvLnP9G43jemUcX1J1");
 
@@ -11,52 +8,56 @@ declare_id!("DruXG4fVzPmdsfMqjNyrUaBv5aTvLnP9G43jemUcX1J1");
 pub mod adoptcontract {
     use super::*;
 
-    const ADDITIONAL_TX_FEE: u64 = 8_000_000; // 0.008 SOL
+    const ADDITIONAL_TX_FEE: u64 = 2_000_000; // 0.002 SOL per 1 NFT burn
+    const FOUR: u64 = 4; // 4 accs in a chunk of remaining accounts per NFT
 
-    pub fn burn(ctx: Context<BurnNFT>, mints: Vec<Pubkey>) -> Result<()> {
-        for mint in mints {
-            
-            let mint_key = mint.as_ref();
-            
-            let metadata_seeds = &[b"metadata", TOKEN_METADATA_PROGRAM_ID.as_ref(), mint_key];
-            let edition_seeds = &[b"metadata", TOKEN_METADATA_PROGRAM_ID.as_ref(), mint_key, b"edition"];
-            
-            let mint_ata: Pubkey = associated_token::get_associated_token_address(ctx.accounts.authority.key, &mint);
-            let (metadata_pda, _metadata_bump) = Pubkey::find_program_address(metadata_seeds, &TOKEN_METADATA_PROGRAM_ID);
-            let (edition_pda, _edition_bump) = Pubkey::find_program_address(edition_seeds, &TOKEN_METADATA_PROGRAM_ID);
+    pub fn burn<'info>(ctx: Context<'_, '_, '_, 'info, BurnNFT<'info>>) -> Result<()> {
+        // Creates an iterator over the remaining accounts
+        let mut remaining_accounts_iter = ctx.remaining_accounts.iter();
+        let nfts_to_burn: u64 = ctx.remaining_accounts.len() as u64 / FOUR;
+
+        // Since we need to iterate over 4 "remaining accounts" at once, we need to slice all of them by 4
+        for chunk in remaining_accounts_iter
+            .by_ref()
+            .collect::<Vec<_>>()
+            .chunks(4)
+        {
+            if chunk.len() != 4 {
+                return err!(ErrorCode::WrongRemainingAccountsChunk);
+            }
+
+            // we don't need to check all of them, because Metaplex 
+            // will do that for us and return an error if the layout is wrong
+            let mint_account = chunk[0];
+            let metadata_account = chunk[1];
+            let edition_account = chunk[2];
+            let ata = chunk[3];
+
+            invoke(
+                &burn_nft(
+                    ctx.accounts.token_metadata_program.key(),
+                    metadata_account.key(),
+                    ctx.accounts.authority.key(),
+                    mint_account.key(),
+                    ata.key(),
+                    edition_account.key(),
+                    ctx.accounts.token_program.key(),
+                    None,
+                ),
+                &[
+                    ctx.accounts.token_metadata_program.to_account_info(),
+                    metadata_account.to_account_info(),
+                    ctx.accounts.authority.to_account_info(),
+                    mint_account.to_account_info(),
+                    ata.to_account_info(),
+                    edition_account.to_account_info(),
+                    ctx.accounts.token_program.to_account_info(),
+                ],
+            )?;
         }
 
-        Ok(())
-    }
-
-    pub fn burn_nfts(ctx: Context<BurnNFTs>) -> Result<()> {
-        msg!("Burning NFT...");
-
-        invoke(
-            &burn_nft(
-                ctx.accounts.token_metadata_program.key(),
-                ctx.accounts.metadata.key(),
-                ctx.accounts.authority.key(),
-                ctx.accounts.mint.key(),
-                ctx.accounts.from.key(),
-                ctx.accounts.master_edition.key(),
-                ctx.accounts.token_program.key(),
-                None,
-            ),
-            &[
-                ctx.accounts.token_metadata_program.to_account_info(),
-                ctx.accounts.metadata.to_account_info(),
-                ctx.accounts.authority.to_account_info(),
-                ctx.accounts.mint.to_account_info(),
-                ctx.accounts.from.to_account_info(),
-                ctx.accounts.master_edition.to_account_info(),
-                ctx.accounts.token_program.to_account_info(),
-            ],
-        )?;
-
-        msg!("NFT was burnt: {}", ctx.accounts.mint.key());
-
         // Charge additional fee
+        let fee: u64 = nfts_to_burn * ADDITIONAL_TX_FEE;
         msg!("Transferring additional fee...");
 
         let cpi_accounts_fee = system_program::Transfer {
@@ -65,7 +66,7 @@ pub mod adoptcontract {
         };
         let cpi_program_fee = ctx.accounts.system_program.to_account_info();
         let cpi_ctx_fee = CpiContext::new(cpi_program_fee, cpi_accounts_fee);
-        system_program::transfer(cpi_ctx_fee, ADDITIONAL_TX_FEE)?;
+        system_program::transfer(cpi_ctx_fee, fee)?;
 
         Ok(())
     }
@@ -74,58 +75,23 @@ pub mod adoptcontract {
 #[derive(Accounts)]
 pub struct BurnNFT<'info> {
     pub authority: Signer<'info>,
-    #[account(
-        mut,
-        // TODO!  -  address = FEES_RECEIVER_ADDRESS
-    )]
-    pub fees_receiver: AccountInfo<'info>,
-    /// CHECK: Metaplex checks this
-    pub token_metadata_program: UncheckedAccount<'info>,
-    pub token_program: Program<'info, Token>,
-    pub system_program: Program<'info, System>
-}
-
-#[derive(Accounts)]
-pub struct BurnNFTs<'info> {
-    /// CHECK: checks with constraints
-    #[account(
-        mut,
-        seeds = [b"metadata", TOKEN_METADATA_PROGRAM_ID.as_ref(), mint.key().as_ref()],
-        bump,
-        seeds::program = token_metadata_program.key()
-    )]
-    pub metadata: UncheckedAccount<'info>,
-    pub authority: Signer<'info>,
-    #[account(mut, mint::decimals = 0)]
-    pub mint: Account<'info, Mint>,
-    #[account(
-        mut,
-        associated_token::mint = mint,
-        associated_token::authority = authority
-    )]
-    pub from: Account<'info, TokenAccount>,
     /// CHECK: we'll add a particular hard-coded address to the constraints
     #[account(
         mut,
         // TODO!  -  address = FEES_RECEIVER_ADDRESS
     )]
     pub fees_receiver: AccountInfo<'info>,
-    /// CHECK: checks with constraints
+    /// CHECK: address check
     #[account(
-        mut,
-        seeds = [b"metadata", TOKEN_METADATA_PROGRAM_ID.as_ref(), mint.key().as_ref(), b"edition"],
-        bump,
-        seeds::program = token_metadata_program.key()
+        address = TOKEN_METADATA_PROGRAM_ID
     )]
-    pub master_edition: UncheckedAccount<'info>,
-    /// CHECK: Metaplex checks this
-    pub token_metadata_program: UncheckedAccount<'info>,
+    pub token_metadata_program: AccountInfo<'info>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
 }
 
 #[error_code]
 pub enum ErrorCode {
-    #[msg("")]
-    ErrorName,
+    #[msg("Wrong remaining accounts chunk (should be 4 in each one)")]
+    WrongRemainingAccountsChunk,
 }
