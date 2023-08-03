@@ -29,3 +29,8 @@
     content: url("../public/assets/images/wallet_icon.png") !important;
     /* border-right: 1px solid black !important;  */
 }
+
+.selected-nft {
+    background-color: rgb(230,245,251);
+    transform: scale(1.02);
+}

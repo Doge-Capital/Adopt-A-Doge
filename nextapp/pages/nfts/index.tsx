@@ -1,17 +1,16 @@
 import React from "react";
-import { Button } from "@nextui-org/react";
 import Nftcard from "../../components/Nftcard";
-import Navbar from "../../components/Navbar";
 import { FetchNft } from "../../context/FetchNFT";
-import { useConnection, useWallet } from "@solana/wallet-adapter-react"
-
-
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { useState } from "react";
 
 function EligibleNfts() {
-    const wallet = useWallet()
+    const wallet = useWallet();
+    const [selectedNfts, setSelectedNfts] = useState<any[]>([]);
+
     return (
-        <div className=" bg-bg">
-            <div className="flex justify-evenly px-12 overflow-hidden font-inter">
+        <div className="bg-bg flex flex-col items-center">
+            <div className="flex gap-20 px-12 overflow-hidden font-inter">
                 <div className="bg-blue w-fit h-fit p-4 px-16  rounded-sm font-semibold text-center">
                     <h5 className=" text-lg opacity-[0.75] ">Current Collection</h5>
                     <h3 className="text-3xl opacity-[0.75]">Doge Capital</h3>
@@ -25,11 +24,11 @@ function EligibleNfts() {
                     <h3 className="text-3xl opacity-[0.75]">0</h3>
                 </div>
             </div>
-            <div className="mx-10 mt-12 pb-7">
-                <h3 className="text-center mt-4 font-semibold text-[1.625rem] opacity-75">
+            <div className="mx-5 mt-12 pb-7 container flex flex-col">
+                <h3 className="text-center my-4 font-semibold text-[1.625rem] opacity-75">
                     Your Eligible NFTs
                 </h3>
-                        { wallet.connected ? <FetchNft /> : <WalletNotConnected /> }
+                        { wallet.connected ? <FetchNft selectedNfts={selectedNfts} setSelectedNfts={setSelectedNfts} /> : <WalletNotConnected /> }
                     { /* <NoELigibeNfts /> */ }
             </div>
 

@@ -7,13 +7,12 @@ import { set } from "@project-serum/anchor/dist/cjs/utils/features"
 
 
 
-export const FetchNft: FC = () => {
+export const FetchNft: FC<{selectedNfts: any[], setSelectedNfts: (nfts: any[]) => void}> = ({selectedNfts, setSelectedNfts}) => {
     const [nftData, setNftData] = useState<null | any[]>(null)
-    const [spinner, setSpinner] = useState<boolean>(false)
+    const [spinner, setSpinner] = useState<boolean>(false);
     const { connection } = useConnection()
     const wallet = useWallet()
     const metaplex = Metaplex.make(connection).use(walletAdapterIdentity(wallet))
-
 
     // fetch nfts
     const fetchNfts = async () => {
@@ -43,6 +42,7 @@ export const FetchNft: FC = () => {
 
                 let json = await fetchResult.json()
                 nftData.push(json)
+                console.log(json);
             } catch (error) {
                 console.error('Fetch error: ', error);
                 // You can also use 'continue' here if you want to skip any iteration that throws an error
@@ -68,16 +68,29 @@ export const FetchNft: FC = () => {
         return (
             <>
                 {nftData && (
-                    <div className="flex flex-wrap mt-4 gap-7 justify-center">
+                    <div className="flex flex-wrap justify-center mt-4 gap-7">
                         {nftData.map((nft, i) => (
-                            <div style={{
-                                boxShadow: ' 0px 4px 50px rgba(0, 0, 0, 0.13)'
-                            }} className='bg-white h-fit p-1 rounded-sm hover:scale-[1.02]' key={i}>
-                                <div className="absolute bg-[#79BD9A] z-20 rounded-full mt-[-0.5rem] ml-[-0.5rem] border-[5px] border-bg text-lg">
+                            <div
+                                style={{ boxShadow: ' 0px 4px 50px rgba(0, 0, 0, 0.13)' }}
+                                className={`bg-white p-1 rounded-sm hover:scale-[1.02] ${selectedNfts.includes(nft) ? 'selected-nft' : ''}`}
+
+                                key={i}
+                                onClick={() => {
+                                    if (selectedNfts && selectedNfts.includes(nft)) {
+                                        setSelectedNfts(selectedNfts.filter(item => item !== nft));
+                                    } else {
+                                        setSelectedNfts([...selectedNfts, nft]);
+                                    }
+                                }}
+                            >
+
+                                {selectedNfts.includes(nft) && <div className="absolute bg-[#79BD9A] z-20 rounded-full mt-[-0.5rem] ml-[-0.5rem] border-[5px] border-bg text-lg">
                                     <Text color='white'> <BsCheck /></Text>
-                                </div>
+                                </div>}
+
                                 <Image src={nft.image} width={200} className="rounded-sm" />
                                 <Text h5 className='text-sm text-center font-semibold'>{nft.name}</Text>
+
                             </div>
                         ))}
                     </div>
