@@ -92,7 +92,7 @@ function About() {
             </div>
           </div>
         </div>
-
+              
         <div className={styles.profilecard}>
           <div className={styles.img}>
             <img src="https://avatars.githubusercontent.com/u/63744576?v=4" />
