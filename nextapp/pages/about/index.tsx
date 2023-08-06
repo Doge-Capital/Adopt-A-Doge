@@ -132,6 +132,32 @@ function About() {
           </div>
         </div>
       </div>
+      <div>
+        <h1 className="mt-20 text-2xl font-bold leading-none tracking-tight text-gray-900 md:text-3xl lg:text-4xl text-center ">
+          Doge Capital
+        </h1>
+        <div className="flex justify-center items-center">
+          <Image
+            src="/assets/images/dawg.svg"
+            alt="Doge Capital Logo"
+            className="h-full text-center"           
+            width={300}
+            height={250}
+          />
+          <p className="w-1/2">
+          Doge Capital is a startup development studio offering SaaS based applications,
+          custom services, Web3 consulting and education to the Solana ecosystem.
+          Our team believes blockchain technology will play a critical role in shaping 
+          the future of internet infrastructure which is why we are positioning ourselves as 
+          a strong technical competitor by creating tools and services that can facilitate
+          initial obstacles to teams looking to launch on the blockchain.
+          </p>
+        </div>
+        <div
+            className="text-l bg-[#FF8C00] px-9 rounded-full text-white w-fit flex mx-auto py-4 hover:border-[#FF8C00] border-4 hover:bg-white hover:text-[#FF8C00] cursor-pointer">
+              <a href="https://thedogecapital.com/"> Woof Woof! </a>   
+        </div>
+      </div>
       <div
         className="text-xl bg-[#2278F9] px-10 rounded-full text-white w-fit flex mx-auto py-4 hover:border-[#2278F9] border-2 hover:bg-white hover:text-[#2278F9] cursor-pointer mt-14 mb-14"
         onClick={() => router.back()}
