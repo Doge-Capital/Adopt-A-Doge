@@ -17,7 +17,12 @@ function About() {
       <div className={styles.main}>
         <div className={styles.profilecard}>
           <div className={styles.img}>
-            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRIr4loAVhNomgO1rnqoav3sDHbr3TxasdftOOCFP1L-g&s" />
+            <Image
+              src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRIr4loAVhNomgO1rnqoav3sDHbr3TxasdftOOCFP1L-g&s"
+              width="160"
+              height="160"
+              alt="Aruns Profile Picture showing a pepe in a batman costume"
+            />
           </div>
           <div className={styles.caption}>
             <h3>
@@ -56,7 +61,12 @@ function About() {
 
         <div className={styles.profilecard}>
           <div className={styles.img}>
-            <img src="https://media.discordapp.net/attachments/1129690773865103430/1137433639362236487/myMonke.png?width=952&height=952" />
+            <Image
+              src="https://media.discordapp.net/attachments/1129690773865103430/1137433639362236487/myMonke.png?width=952&height=952"
+              width="160"
+              height="160"
+              alt="Elijahs Profile Picture showing a Solana Monkey Business Generation 3"
+            />
           </div>
           <div className={styles.caption}>
             <h3>
@@ -92,10 +102,15 @@ function About() {
             </div>
           </div>
         </div>
-              
+
         <div className={styles.profilecard}>
           <div className={styles.img}>
-            <img src="https://avatars.githubusercontent.com/u/63744576?v=4" />
+            <Image
+              src="https://avatars.githubusercontent.com/u/63744576?v=4"
+              width="160"
+              height="160"
+              alt="Image of ALsJourney Profile Picture showing a SectorH Profile picture"
+            />
           </div>
           <div className={styles.caption}>
             <h3>
@@ -133,29 +148,33 @@ function About() {
         </div>
       </div>
       <div>
-        <h1 className="mt-20 text-2xl font-bold leading-none tracking-tight text-gray-900 md:text-3xl lg:text-4xl text-center ">
-          Doge Capital
-        </h1>
         <div className="flex justify-center items-center">
-          <Image
-            src="/assets/images/dawg.svg"
-            alt="Doge Capital Logo"
-            className="h-full text-center"           
-            width={300}
-            height={250}
-          />
-          <p className="w-1/2">
-          Doge Capital is a startup development studio offering SaaS based applications,
-          custom services, Web3 consulting and education to the Solana ecosystem.
-          Our team believes blockchain technology will play a critical role in shaping 
-          the future of internet infrastructure which is why we are positioning ourselves as 
-          a strong technical competitor by creating tools and services that can facilitate
-          initial obstacles to teams looking to launch on the blockchain.
-          </p>
-        </div>
-        <div
-            className="text-l bg-[#FF8C00] px-9 rounded-full text-white w-fit flex mx-auto py-4 hover:border-[#FF8C00] border-4 hover:bg-white hover:text-[#FF8C00] cursor-pointer">
-              <a href="https://thedogecapital.com/"> Woof Woof! </a>   
+          <div className=" max-w-1/2 flex justify-center items-center">
+            <Image
+              src="/assets/images/dawg.svg"
+              alt="Doge Capital Logo"
+              width="300"
+              height="250"
+            />
+          </div>
+          <div className="flex flex-col w-1/2 pt-32">
+            <h1 className=" text-2xl font-bold leading-none tracking-tight text-gray-900 md:text-3xl lg:text-4xl mb-8">
+              Doge Capital
+            </h1>
+            <p>
+              Doge Capital is a startup development studio offering SaaS based
+              applications, custom services, Web3 consulting and education to
+              the Solana ecosystem. <br /> <br />
+              Our team believes blockchain technology will play a critical role
+              in shaping the future of internet infrastructure which is why we
+              are positioning ourselves as a strong technical competitor by
+              creating tools and services that can facilitate initial obstacles
+              to teams looking to launch on the blockchain.
+            </p>
+            <div className="text-l bg-[#2278F9] px-9 rounded-full text-white w-fit flex py-4 hover:border-[#2278F9] border-4 hover:bg-white hover:text-[#2278F9] cursor-pointer mt-6">
+              <a href="https://thedogecapital.com/"> Learn More! </a>
+            </div>
+          </div>
         </div>
       </div>
       <div
