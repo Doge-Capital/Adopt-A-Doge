@@ -9,7 +9,7 @@ function EligibleNfts() {
   const [selectedNfts, setSelectedNfts] = useState<any[]>([]);
 
   return (
-    <div className="bg-bg flex flex-col items-center">
+    <div className="bg-bg flex flex-col items-center h-[90vh]">
       <div className="flex gap-20 px-12 overflow-hidden font-inter">
         <div className="bg-blue w-fit h-fit p-4 px-16  rounded-sm font-semibold text-center">
           <h5 className=" text-lg opacity-[0.75] ">Current Collection</h5>
@@ -39,7 +39,7 @@ function EligibleNfts() {
         {/* <NoELigibeNfts /> */}
       </div>
 
-      <div className="h-[10vh] sticky bottom-0 w-full px-12 bg-bg z-50">
+      {selectedNfts.length > 0 && <div className="sticky bottom-0 w-full px-12 bg-bg z-50">
         <div className="flex align-middle justify-between py-4 h-full">
           <div className="text-[1.125rem] opacity-[0.75] flex items-center gap-4 font-medium ">
             <h3>NFTs Selected : 00</h3>
@@ -52,7 +52,7 @@ function EligibleNfts() {
             Burn and receive tickets
           </button>
         </div>
-      </div>
+      </div>}
     </div>
   );
 }

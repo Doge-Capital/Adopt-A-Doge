@@ -11,8 +11,8 @@ function Navbar() {
     const router = useRouter();
 
     return (
-        <div className="bg-[#f5f5f5] sticky top-0 z-50">
-            <div className="flex justify-end h-[10vh] items-center mx-12 gap-6">
+        <div className="bg-[#f5f5f5] sticky top-0 z-50 ">
+            <div className="flex justify-center sm:justify-end h-[10vh] items-center mx-2 sm:mx-12 gap-6">
                 <Text className=" text-xl hover:translate-y-[-2px] rounded-full w-8 text-center border-2 border-black cursor-pointer" onClick={() => router.push("/about")}>
                     i
                 </Text>
