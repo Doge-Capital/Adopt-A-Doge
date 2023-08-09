@@ -10,7 +10,7 @@ function About() {
   return (
     <div>
       <div className={styles.header}>
-        <h1 className="mt-4 mb-4 text-4xl font-extrabold leading-none tracking-tight text-gray-900 md:text-5xl lg:text-6xl">
+        <h1 className="mt-4 mb-4 text-4xl font-extrabold leading-none tracking-tight text-gray-900 md:text-5xl lg:text-6xl text-center">
           Created by the Doge Academy Students
         </h1>
       </div>
@@ -149,7 +149,7 @@ function About() {
       </div>
       <div>
         <div className="flex justify-center items-center">
-          <div className=" max-w-1/2 flex justify-center items-center">
+          <div className=" max-w-1/2 flex justify-center items-center hidden sm:flex">
             <Image
               src="/assets/images/dawg.svg"
               alt="Doge Capital Logo"
@@ -158,10 +158,10 @@ function About() {
             />
           </div>
           <div className="flex flex-col w-1/2 pt-32">
-            <h1 className=" text-2xl font-bold leading-none tracking-tight text-gray-900 md:text-3xl lg:text-4xl mb-8">
-              Doge Capital
-            </h1>
-            <p>
+          <h1 className="text-2xl font-bold leading-none tracking-tight text-gray-900 text-center sm:text-left md:text-3xl lg:text-4xl mb-8">
+            Doge Capital
+          </h1>
+            <p className="text-center sm:text-left">
               Doge Capital is a startup development studio offering SaaS based
               applications, custom services, Web3 consulting and education to
               the Solana ecosystem. <br /> <br />
@@ -171,7 +171,7 @@ function About() {
               creating tools and services that can facilitate initial obstacles
               to teams looking to launch on the blockchain.
             </p>
-            <div className="text-l bg-[#2278F9] px-9 rounded-full text-white w-fit flex py-4 hover:border-[#2278F9] border-4 hover:bg-white hover:text-[#2278F9] cursor-pointer mt-6">
+            <div className="text-l bg-[#2278F9] px-9 rounded-full text-white w-fit flex py-4 hover:border-[#2278F9] border-4 hover:bg-white hover:text-[#2278F9] cursor-pointer mt-6 mx-auto sm:mx-0">
               <a href="https://thedogecapital.com/"> Learn More! </a>
             </div>
           </div>

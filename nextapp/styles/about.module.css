@@ -23,7 +23,7 @@
   padding: 30px;
   border-radius: 50%;
   box-shadow: 0 0 22px #3336;
-  transition: 0.6s;
+  transition: 0.4s;
   margin: 0 85px;
 }
 .profilecard:hover {
@@ -34,7 +34,7 @@
   position: relative;
   width: 100%;
   height: 100%;
-  transition: 0.6s;
+  transition: 0.4s;
   z-index: 99;
   display: flex;
   flex-direction: column;
@@ -49,7 +49,7 @@
   border-radius: 50%;
 }
 .img img:hover {
-  transition: 0.6s;
+  transition: 0.4s;
 }
 .profilecard:hover img {
   border-radius: 10px;
@@ -58,7 +58,7 @@
   text-align: center;
   transform: translateY(-80px);
   opacity: 0;
-  transition: 0.6s;
+  transition: 0.4s;
 }
 .profilecard:hover .caption {
   opacity: 1;
@@ -76,7 +76,7 @@
 .caption .sociallinks a {
   color: #333;
   font-size: 21px;
-  transition: 0.6s;
+  transition: 0.4s;
   display: flex;
   flex-direction: column;
 }
@@ -84,4 +84,48 @@
   color: #0c52a1;
   display: flex;
   flex-direction: column;
+}
+
+@media (max-width: 768px) {
+  .main {
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+  .profilecard {
+    margin: 25px;
+    width: 150px;
+    height: 150px;
+    padding: 20px;
+  }
+  .profilecard:hover {
+    border-radius: 10px;
+    height: 200px;
+  }
+
+  .profilecard .img {
+    z-index: 0;
+}
+}
+
+@media (min-width: 768px) and (max-width: 1180px) {
+  .main {
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+  }
+  .profilecard {
+    margin: 50px;
+    width: 150px;
+    height: 150px;
+    padding: 20px;
+  }
+  .profilecard:hover {
+    border-radius: 10px;
+    height: 200px;
+  }
+
+  .profilecard .img {
+    z-index: 0;
+}
 }
