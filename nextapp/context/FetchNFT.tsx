@@ -66,7 +66,16 @@ export const FetchNft: FC<{
         <div>Loading...</div>
       </div>
     );
-  } else {
+  } else if (nftData && nftData.length === 0) {
+    return (
+      <div className="flex text-center mx-auto w-fit mt-20">
+        <h3 className="text-[#D44C4C] text-lg  font-semibold">
+          There are no NFTs in your wallet!
+        </h3>
+      </div>
+    );
+  }
+  else {
     return (
       <>
         {nftData && (
