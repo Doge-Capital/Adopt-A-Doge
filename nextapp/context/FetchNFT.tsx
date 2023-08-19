@@ -3,7 +3,7 @@ import { Metaplex, walletAdapterIdentity } from "@metaplex-foundation/js";
 import { FC, useEffect, useState } from "react";
 import { Image, Text } from "@nextui-org/react";
 import { BsCheck } from "react-icons/bs";
-import { set } from "@project-serum/anchor/dist/cjs/utils/features";
+// import { set } from "@project-serum/anchor/dist/cjs/utils/features";
 
 export const FetchNft: FC<{
   selectedNfts: any[];
@@ -79,13 +79,12 @@ export const FetchNft: FC<{
     return (
       <>
         {nftData && (
-          <div className="flex flex-wrap justify-center mt-4 gap-7">
+          <div className="flex flex-wrap justify-center mt-4 gap-8">
             {nftData.map((nft, i) => (
               <div
-                style={{ boxShadow: " 0px 4px 50px rgba(0, 0, 0, 0.13)" }}
-                className={`bg-white p-1 rounded-sm hover:scale-[1.02] ${
-                  selectedNfts.includes(nft) ? "selected-nft" : ""
-                }`}
+                style={{ boxShadow: " 0px 4px 50px rgba(0, 0, 0, 0.13)", margin: "6px" }}
+                className={`bg-white p-1 rounded-sm hover:scale-[1.02]  ${selectedNfts.includes(nft) ? "selected-nft" : ""
+                  }`}
                 key={i}
                 onClick={() => {
                   if (selectedNfts && selectedNfts.includes(nft)) {
