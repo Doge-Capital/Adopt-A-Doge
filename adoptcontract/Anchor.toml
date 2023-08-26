@@ -4,6 +4,9 @@ skip-lint = false
 [programs.localnet]
 adoptcontract = "WK2HDpKKafvGms55U4WgeD9RkgshRcHsddndja4ooeY"
 
+[programs.devnet]
+adoptcontract = "WK2HDpKKafvGms55U4WgeD9RkgshRcHsddndja4ooeY"
+
 [registry]
 url = "https://api.apr.dev"
 
