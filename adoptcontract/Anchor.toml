@@ -2,14 +2,29 @@
 seeds = false
 skip-lint = false
 [programs.localnet]
-adoptcontract = "GntfZtKwsEZyygp35RM5ooBuHirNBCEdcnGSGByAgEtF"
+adoptcontract = "WK2HDpKKafvGms55U4WgeD9RkgshRcHsddndja4ooeY"
+
+[programs.devnet]
+adoptcontract = "WK2HDpKKafvGms55U4WgeD9RkgshRcHsddndja4ooeY"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
 cluster = "Localnet"
-wallet = "/Users/alsjourney/.config/solana/id.json"
+wallet = "/Users/elijah/.config/solana/id.json"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+
+## Necessary for test validator
+[test.validator]
+url = "https://api.devnet.solana.com"
+
+# Token Metadata program
+[[test.validator.clone]]
+address = "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
+
+# Token Program
+[[test.validator.clone]]
+address = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
