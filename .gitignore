@@ -10,6 +10,7 @@ node_modules
 
 # next.js
 /.next/
+/nextapp/.next
 /out/
 /nextapp/.next
 
