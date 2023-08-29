@@ -83,15 +83,14 @@ export const FetchNft: FC<{
             {nftData.map((nft, i) => (
               <div
                 style={{ boxShadow: " 0px 4px 50px rgba(0, 0, 0, 0.13)", margin: "6px" }}
-                className={`bg-white p-1 rounded-sm hover:scale-[1.02]  ${selectedNfts.includes(nft) ? "selected-nft" : ""
-                  }`}
+                className={`bg-white p-1 rounded-sm hover:scale-[1.02]  ${selectedNfts.includes(nft) ? "selected-nft" : ""}`}
                 key={i}
                 onClick={() => {
                   if (selectedNfts && selectedNfts.includes(nft)) {
                     setSelectedNfts(
                       selectedNfts.filter((item) => item !== nft),
                     );
-                  } else {
+                  } else if (selectedNfts.length < 4) {
                     setSelectedNfts([...selectedNfts, nft]);
                   }
                 }}
