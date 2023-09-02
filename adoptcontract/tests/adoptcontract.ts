@@ -109,6 +109,95 @@ describe("adoptcontract", () => {
         console.log(`Airdrop tx hash: ${airdrop_txhash}`);
     });
 
+    it("inits, burns and transfers a ticket", async () => {
+        const vaultPDA = anchor.web3.PublicKey.findProgramAddressSync(
+            [
+                anchor.utils.bytes.utf8.encode("authority"),
+            ],
+            program.programId
+        )[0];
+
+        const userBurnInfo = anchor.web3.PublicKey.findProgramAddressSync(
+            [
+                anchor.utils.bytes.utf8.encode("burnstate"),
+                testKeypair.publicKey.toBuffer()
+            ],
+            program.programId
+        )[0];
+
+        try {
+            // INIT instruction, uncomment if you havent initialized a PDA yet and add that to the main burn instruction
+            // as "preInstruction([initTx])"
+
+            const initIx = await program.methods.initialize()
+                .accounts({
+                    signer: testKeypair.publicKey,
+                    pdaAccount: vaultPDA,
+                    systemProgram: anchor.web3.SystemProgram.programId,
+                })
+                .signers([testKeypair])
+                .instruction();
+
+            // TRANSFER ticket instruction
+            const [pdaNft1, pdaAta1, myAta1] = await mintNftToPda(); 
+            const [pdaNft2, pdaAta2, myAta2] = await mintNftToPda(); 
+            const [pdaNft3, pdaAta3, myAta3] = await mintNftToPda(); 
+
+            const ticket1AccountMeta = createTransferAccountMeta(pdaNft1.address, pdaAta1, myAta1);
+            const ticket2AccountMeta = createTransferAccountMeta(pdaNft2.address, pdaAta2, myAta2);
+            const ticket3AccountMeta = createTransferAccountMeta(pdaNft3.address, pdaAta3, myAta3);
+
+            const combinedTransferAccountMetas = [...ticket1AccountMeta, ...ticket2AccountMeta, ...ticket3AccountMeta];
+
+            const transferTicketIx = await program.methods.transferNftFromPda()
+                .accounts({
+                    payer: testKeypair.publicKey,
+                    authority: vaultPDA,
+                    tokenProgram: TOKEN_PROGRAM_ID,
+                    userBurnInfo: userBurnInfo,
+                    associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+                    systemProgram: anchor.web3.SystemProgram.programId,
+                    rent: anchor.web3.SYSVAR_RENT_PUBKEY
+                })
+                .signers([testKeypair])
+                .remainingAccounts(combinedTransferAccountMetas)
+                .instruction();
+
+            // main (BURN) instruction
+            const [nft1, ata1] = await mintToken();
+            const [nft2, ata2] = await mintToken();
+            const [nft3, ata3] = await mintToken();
+
+            let mint1AccountMeta = createBurnAccountMeta(nft1.address, nft1.metadataAddress, nft1.edition.address, ata1);
+            let mint2AccountMeta = createBurnAccountMeta(nft2.address, nft2.metadataAddress, nft2.edition.address, ata2);
+            let mint3AccountMeta = createBurnAccountMeta(nft3.address, nft3.metadataAddress, nft3.edition.address, ata3);
+
+            let combinedAccountMeta = [...mint1AccountMeta, ...mint2AccountMeta, ...mint3AccountMeta];
+
+            console.log("Runs \"burn\" ix...");
+            const burnIx = await program.methods.burn()
+                .accounts({
+                    authority: testKeypair.publicKey,
+                    feesReceiver: testKeypair.publicKey,
+                    userBurnInfo: userBurnInfo,
+                    tokenProgram: TOKEN_PROGRAM_ID,
+                    tokenMetadataProgram: TOKEN_METADATA_PROGRAM_ID,
+                    systemProgram: anchor.web3.SystemProgram.programId
+                })
+                .remainingAccounts(combinedAccountMeta)
+                .signers([testKeypair])
+                .preInstructions([initIx])
+                .postInstructions([transferTicketIx])
+                .rpc({
+                    skipPreflight: true
+                });
+
+                console.log("Burn tx hash: ", burnIx);
+        } catch (error) {
+            console.log("An error occurred: ", error);
+        }
+    })
+
     it.skip("burns 4 NFTs and transfers fees", async () => {
         const [nft1, ata1] = await mintToken();
         const [nft2, ata2] = await mintToken();
@@ -216,95 +305,6 @@ describe("adoptcontract", () => {
             console.log("Transfer transaction signature", tx);
         } catch (error) {
             console.log("An error occcured while minting and transferring NFT from PDA: ", error);
-        }
-    })
-
-    it("inits, burns and transfers a ticket", async () => {
-        const vaultPDA = anchor.web3.PublicKey.findProgramAddressSync(
-            [
-                anchor.utils.bytes.utf8.encode("authority"),
-            ],
-            program.programId
-        )[0];
-
-        const userBurnInfo = anchor.web3.PublicKey.findProgramAddressSync(
-            [
-                anchor.utils.bytes.utf8.encode("burnstate"),
-                testKeypair.publicKey.toBuffer()
-            ],
-            program.programId
-        )[0];
-
-        try {
-            // INIT instruction, uncomment if you havent initialized a PDA yet and add that to the main burn instruction
-            // as "preInstruction([initTx])"
-
-            const initIx = await program.methods.initialize()
-                .accounts({
-                    signer: testKeypair.publicKey,
-                    pdaAccount: vaultPDA,
-                    systemProgram: anchor.web3.SystemProgram.programId,
-                })
-                .signers([testKeypair])
-                .instruction();
-
-            // TRANSFER ticket instruction
-            const [pdaNft1, pdaAta1, myAta1] = await mintNftToPda(); 
-            const [pdaNft2, pdaAta2, myAta2] = await mintNftToPda(); 
-            const [pdaNft3, pdaAta3, myAta3] = await mintNftToPda(); 
-
-            const ticket1AccountMeta = createTransferAccountMeta(pdaNft1.address, pdaAta1, myAta1);
-            const ticket2AccountMeta = createTransferAccountMeta(pdaNft2.address, pdaAta2, myAta2);
-            const ticket3AccountMeta = createTransferAccountMeta(pdaNft3.address, pdaAta3, myAta3);
-
-            const combinedTransferAccountMetas = [...ticket1AccountMeta, ...ticket2AccountMeta, ...ticket3AccountMeta];
-
-            const transferTicketIx = await program.methods.transferNftFromPda()
-                .accounts({
-                    payer: testKeypair.publicKey,
-                    authority: vaultPDA,
-                    tokenProgram: TOKEN_PROGRAM_ID,
-                    userBurnInfo: userBurnInfo,
-                    associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-                    systemProgram: anchor.web3.SystemProgram.programId,
-                    rent: anchor.web3.SYSVAR_RENT_PUBKEY
-                })
-                .signers([testKeypair])
-                .remainingAccounts(combinedTransferAccountMetas)
-                .instruction();
-
-            // main (BURN) instruction
-            const [nft1, ata1] = await mintToken();
-            const [nft2, ata2] = await mintToken();
-            const [nft3, ata3] = await mintToken();
-
-            let mint1AccountMeta = createBurnAccountMeta(nft1.address, nft1.metadataAddress, nft1.edition.address, ata1);
-            let mint2AccountMeta = createBurnAccountMeta(nft2.address, nft2.metadataAddress, nft2.edition.address, ata2);
-            let mint3AccountMeta = createBurnAccountMeta(nft3.address, nft3.metadataAddress, nft3.edition.address, ata3);
-
-            let combinedAccountMeta = [...mint1AccountMeta, ...mint2AccountMeta, ...mint3AccountMeta];
-
-            console.log("Runs \"burn\" ix...");
-            const burnIx = await program.methods.burn()
-                .accounts({
-                    authority: testKeypair.publicKey,
-                    feesReceiver: testKeypair.publicKey,
-                    userBurnInfo: userBurnInfo,
-                    tokenProgram: TOKEN_PROGRAM_ID,
-                    tokenMetadataProgram: TOKEN_METADATA_PROGRAM_ID,
-                    systemProgram: anchor.web3.SystemProgram.programId
-                })
-                .remainingAccounts(combinedAccountMeta)
-                .signers([testKeypair])
-                .preInstructions([initIx])
-                .postInstructions([transferTicketIx])
-                .rpc({
-                    skipPreflight: true
-                });
-
-                console.log("Burn tx hash: ", burnIx);
-        } catch (error) {
-            console.log("An error occurred: ", error);
         }
     })
 });

@@ -1,11 +1,11 @@
 use anchor_lang::{prelude::*, solana_program::program::invoke, system_program};
 use anchor_spl::{
     associated_token::AssociatedToken,
-    token::{ transfer_checked, Token, TransferChecked },
+    token::{transfer_checked, Token, TransferChecked},
 };
 use mpl_token_metadata::{instruction::burn_nft, ID as TOKEN_METADATA_PROGRAM_ID};
 
-declare_id!("WK2HDpKKafvGms55U4WgeD9RkgshRcHsddndja4ooeY");
+declare_id!("AADPftBL56zsjQZcCU6XhCKGpq3C2eSLeWcW26rjmjnG");
 
 #[program]
 pub mod adoptcontract {
@@ -29,13 +29,13 @@ pub mod adoptcontract {
     pub fn burn<'info>(ctx: Context<'_, '_, '_, 'info, BurnNFT<'info>>) -> Result<()> {
         msg!("Burning NFTs...");
         let user_info = &mut ctx.accounts.user_burn_info;
+        user_info.nfts_burnt = 0;
 
         // Creates an iterator over the remaining accounts
         let mut remaining_accounts_iter = ctx.remaining_accounts.iter();
         let nfts_to_burn: u64 = (ctx.remaining_accounts.len() as u64)
             .checked_div(FOUR)
             .unwrap();
-
 
         // Since we need to iterate over 4 "remaining accounts" at once, we need to slice all of them by 4
         for chunk in remaining_accounts_iter
@@ -73,13 +73,16 @@ pub mod adoptcontract {
                     ata.to_account_info(),
                     edition_account.to_account_info(),
                     ctx.accounts.token_program.to_account_info(),
-                    ],
-                )?;
+                ],
+            )?;
 
-                user_info.nfts_burnt = user_info.nfts_burnt.checked_add(ONE).unwrap();
-            }
-            
+            user_info.nfts_burnt = user_info.nfts_burnt.checked_add(ONE).unwrap();
+        }
+
         msg!("NFTs burnt: {}", user_info.nfts_burnt);
+        if user_info.nfts_burnt <= 0 {
+            return err!(ErrorCode::ZeroBurnsOccured);
+        }
 
         // Charge additional fee
         let fee: u64 = nfts_to_burn * ADDITIONAL_TX_FEE;
@@ -96,7 +99,9 @@ pub mod adoptcontract {
         Ok(())
     }
 
-    pub fn transfer_nft_from_pda<'info>(ctx: Context<'_, '_, '_, 'info, SendTicket<'info>>) -> Result<()> {
+    pub fn transfer_nft_from_pda<'info>(
+        ctx: Context<'_, '_, '_, 'info, SendTicket<'info>>,
+    ) -> Result<()> {
         msg!("Transferring tickets...");
         let user_info = &mut ctx.accounts.user_burn_info;
 
@@ -162,7 +167,10 @@ pub mod adoptcontract {
         // Reset to 0 after a transfer is completed just in case
         user_info.nfts_burnt = 0;
         msg!("{} tickets were transferred", tickets_to_send);
-        msg!("Remaining burns after the transfer IX: {}", user_info.nfts_burnt);
+        msg!(
+            "Remaining burns after the transfer IX: {}",
+            user_info.nfts_burnt
+        );
 
         Ok(())
     }
@@ -272,4 +280,6 @@ pub enum ErrorCode {
     WrongAdminAddress,
     #[msg("Wrong fees receiver address")]
     WrongFeesReceiverAddress,
+    #[msg("No burns occured, reverting transaction")]
+    ZeroBurnsOccured,
 }

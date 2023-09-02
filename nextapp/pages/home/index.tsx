@@ -1,5 +1,4 @@
 import React from "react";
-import Navbar from "../../components/Navbar";
 import { Image } from "@nextui-org/react";
 import { useRouter } from "next/router";
 
