@@ -176,10 +176,11 @@ pub mod adoptcontract {
     ) -> Result<()> {
         msg!("Transferring tickets...");
 
-        msg!("Current burns: {}", &ctx.accounts.user_burn_info.nfts_burnt);
+        let user_info = &mut ctx.accounts.user_burn_info;
+        msg!("Current burns: {}", user_info.nfts_burnt);
 
         // allowed number of tickets to receive validation
-        if ctx.accounts.user_burn_info.nfts_burnt <= 0 as u64 {
+        if user_info.nfts_burnt <= 0 as u64 {
             return err!(ErrorCode::ZeroUserPdaBurns);
         }
 
@@ -206,17 +207,12 @@ pub mod adoptcontract {
             &signer,
         );
 
-        let amount_to_send: u64 = ctx.accounts.user_burn_info.nfts_burnt;
+        let amount_to_send: u64 = user_info.nfts_burnt;
     
         transfer_checked(cpi_ctx, amount_to_send, 0)?;
 
         // refresh the state
-        let user_info = &mut ctx.accounts.user_burn_info;
         user_info.nfts_burnt = 0;
-        msg!(
-            "Remaining burns after the transfer IX: {}",
-            ctx.accounts.user_burn_info.nfts_burnt
-        );
 
         Ok(())
     }
@@ -319,6 +315,7 @@ pub struct SendTicket<'info> {
     )]
     pub to: Account<'info, TokenAccount>,
     #[account(
+        mut,
         seeds = [b"burnstate".as_ref(), payer.key.as_ref()],
         bump,
     )]
