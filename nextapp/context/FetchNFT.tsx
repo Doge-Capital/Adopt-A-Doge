@@ -1,66 +1,53 @@
-import { useWallet } from "@solana/wallet-adapter-react";
-import { Metadata, Metaplex, walletAdapterIdentity } from "@metaplex-foundation/js";
+import { DigitalAsset, fetchAllDigitalAssetByOwner, fetchJsonMetadata } from "@metaplex-foundation/mpl-token-metadata";
+import { fromWeb3JsPublicKey } from "@metaplex-foundation/umi-web3js-adapters";
 import { FC, useEffect, useState } from "react";
 import { Image, Text } from "@nextui-org/react";
 import { BsCheck } from "react-icons/bs";
 import { useProgram } from "./Program";
+import noImg from "../public/assets/images/no-img.png";
 
-type NftData = [Metadata, string];
+type NftData = [DigitalAsset, string];
 
 export const FetchNft: FC<{
-    selectedNfts: Metadata[];
-    setSelectedNfts: (nfts: Metadata[]) => void;
+    selectedNfts: DigitalAsset[];
+    setSelectedNfts: (nfts: DigitalAsset[]) => void;
     burnSig: string;
 }> = ({ selectedNfts, setSelectedNfts, burnSig }) => {
     const [nftData, setNftData] = useState<null | NftData[]>(null);
     const [spinner, setSpinner] = useState<boolean>(false);
-    const { connection } = useProgram();
-    const wallet = useWallet();
-    const metaplex = Metaplex.make(connection).use(walletAdapterIdentity(wallet));
+    const { umi, wallet } = useProgram();
 
-    // fetch nfts
-    const fetchNfts = async () => {
+    const fetchUserAssets = async() => {
         setSpinner(true);
-        if (!wallet.connected) {
+        if (!wallet) {
             return;
         }
 
-        if (!wallet.publicKey) {
-            return;
-        }
-
-        // fetch NFTs for connected wallet
-        const userNfts = await metaplex.nfts().findAllByOwner({ owner: wallet.publicKey }) as Metadata[];
-
+        const userAssets = await fetchAllDigitalAssetByOwner(umi, fromWeb3JsPublicKey(wallet.publicKey), { tokenAmountFilter: (amount) => amount > 0 });
         let nftData: NftData[] = [];
 
-        // fetch off chain metadata for each NFT and set [[nft, image]...[nft, image]] array
-        for (const nft of userNfts) {
-            try {
-                let fetchResult = await fetch(nft.uri);
-
-                if (!fetchResult.ok) {
-                    console.error(`HTTP error! status: ${fetchResult.status}`);
-                    continue; // Skip this iteration and proceed to the next one
+        for (const asset of userAssets) {
+            if (asset.mint.decimals === 0) {
+                try {
+                    const loadedAsset = await fetchJsonMetadata(umi, asset.metadata.uri);
+                    if (loadedAsset) {
+                        nftData.push([asset, loadedAsset.image as string]);
+                    }
+                } catch (error) {
+                    console.log("Fetch error: " + error);
                 }
-
-                let json = await fetchResult.json();
-                nftData.push([nft, json.image]);
-            } catch (error) {
-                console.error("Fetch error: ", error);
             }
         }
 
-        // set state
         setNftData(nftData);
         setSpinner(false);
-    };
+    }
 
     // fetch nfts when connected wallet changes
     useEffect(() => {
-        fetchNfts();
+        fetchUserAssets();
         setSelectedNfts([]);
-    }, [wallet.publicKey, burnSig]);
+    }, [wallet, burnSig]);
 
     if (spinner) {
         return (
@@ -107,13 +94,13 @@ export const FetchNft: FC<{
                                 )}
 
                                 <Image
-                                    src={nftData[1]}
+                                    src={nftData[1] ? nftData[1] : noImg.src}
                                     width={200}
                                     height={150}
                                     className="rounded-sm"
                                 />
                                 <Text h5 className="text-sm text-center font-semibold">
-                                    {nftData[0].name}
+                                    {nftData[0].metadata.name ? nftData[0].metadata.name : "Unknown"}
                                 </Text>
                             </div>
                         ))}
