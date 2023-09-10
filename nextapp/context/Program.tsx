@@ -73,9 +73,7 @@ export const ProgramProvider: FC<Props> = ({ children }) => {
 
             const program = new anchor.Program<Adoptcontract>(JSON.parse(JSON.stringify(idl)), programId, provider);
             setProgram(program);
-            toast.success("The program has been successfully setup");
         }
-        console.log("Vault's address: " + vaultPDA.toBase58());
         getProgram();
     }, [wallet]);
 
@@ -100,8 +98,6 @@ export const ProgramProvider: FC<Props> = ({ children }) => {
         let tokensAccountMetaArray: Array<AccountMeta> = [];
 
         for (const nft of nfts) {
-            console.log("Loaded NFT metadata: " + nft.mint.publicKey);
-
             if (nft) {
                 const nftAta = wallet && await getAssociatedTokenAddress(toWeb3JsPublicKey(nft.mint.publicKey), wallet?.publicKey);
                 if (nft.edition) {
