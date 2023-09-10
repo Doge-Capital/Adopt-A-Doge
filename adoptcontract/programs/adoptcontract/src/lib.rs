@@ -243,7 +243,7 @@ pub struct BurnNFT<'info> {
     /// CHECK: we'll add a particular hard-coded address to the constraints
     #[account(
         mut,
-        // address = Pubkey::try_from("C326k1ZK43BPfLGVzSBc8991L94a3X7XUvX9BSmJZLbb").unwrap() @ ErrorCode::WrongFeesReceiverAddress
+        address = Pubkey::try_from("C326k1ZK43BPfLGVzSBc8991L94a3X7XUvX9BSmJZLbb").unwrap() @ ErrorCode::WrongFeesReceiverAddress
     )]
     pub fees_receiver: AccountInfo<'info>,
     /// CHECK: address check
@@ -270,7 +270,7 @@ pub struct BurnToken<'info> {
     /// CHECK: we'll add a particular hard-coded address to the constraints
     #[account(
         mut,
-        // address = Pubkey::try_from("C326k1ZK43BPfLGVzSBc8991L94a3X7XUvX9BSmJZLbb").unwrap() @ ErrorCode::WrongFeesReceiverAddress
+        address = Pubkey::try_from("C326k1ZK43BPfLGVzSBc8991L94a3X7XUvX9BSmJZLbb").unwrap() @ ErrorCode::WrongFeesReceiverAddress
     )]
     pub fees_receiver: AccountInfo<'info>,
     #[account(
@@ -292,13 +292,13 @@ pub struct SendTicket<'info> {
     #[account(
         mut,
         seeds = [b"authority".as_ref()],
-        bump
-        // address = "address" @ WrongPDAAddress
+        bump,
+        address = Pubkey::try_from("3oYQtoxG1TDxpqzwm5GQjE5Faqp5dcRyjZAZDh142Tci").unwrap() @ ErrorCode::WrongPDAAddress
     )]
     pub authority: Account<'info, NftsValutAccount>,
     #[account(
         mut,
-        // address = Pubkey::try_from("Ha8S2T77GegYpcWh3L9REjx4pPYpy6hdu3zW4ERgdsmP").unwrap() @ ErrorCode::WrongTicketsMint
+        address = Pubkey::try_from("Ha8S2T77GegYpcWh3L9REjx4pPYpy6hdu3zW4ERgdsmP").unwrap() @ ErrorCode::WrongTicketsMint
     )]
     pub tickets_mint: Account<'info, Mint>,
     #[account(

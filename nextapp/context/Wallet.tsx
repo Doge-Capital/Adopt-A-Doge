@@ -19,7 +19,7 @@ type Props = {
 };
 
 export const Wallet: FC<Props> = ({ children }) => {
-    const network = WalletAdapterNetwork.Devnet;
+    const network = WalletAdapterNetwork.Mainnet;
 
     // You can also provide a custom RPC endpoint.
     const endpoint = useMemo(() => clusterApiUrl(network), [network]);

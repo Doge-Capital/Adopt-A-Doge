@@ -38,17 +38,16 @@ export const ProgramProvider: FC<Props> = ({ children }) => {
     const [program, setProgram] = useState<anchor.Program<Adoptcontract>>(null!);
     const { connection } = useConnection();
     const wallet = useAnchorWallet();
-    // const umi = createUmi('https://rpc.helius.xyz/?api-key=3c60b359-8acb-4d2f-8f64-b2f748436d45');
-    const umi = createUmi("https://api.devnet.solana.com");
+    const umi = createUmi('https://rpc.helius.xyz/?api-key=3c60b359-8acb-4d2f-8f64-b2f748436d45');
 
     const programId = new anchor.web3.PublicKey("AADPftBL56zsjQZcCU6XhCKGpq3C2eSLeWcW26rjmjnG");
     const TOKEN_METADATA_PROGRAM_ID = new anchor.web3.PublicKey(
         "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
     );
-    // const TICKETS_MINT_ADDRESS = new anchor.web3.PublicKey("Ha8S2T77GegYpcWh3L9REjx4pPYpy6hdu3zW4ERgdsmP");
-
+    
+    const TICKETS_MINT_ADDRESS = new anchor.web3.PublicKey("Ha8S2T77GegYpcWh3L9REjx4pPYpy6hdu3zW4ERgdsmP");
     // for devnet testing 
-    const TICKETS_MINT_ADDRESS = new anchor.web3.PublicKey("4niSCMSdCw3Rh6dqjjEUeUUL4jhEyLAsKdFewZoZ4Z3Z");
+    // const TICKETS_MINT_ADDRESS = new anchor.web3.PublicKey("4niSCMSdCw3Rh6dqjjEUeUUL4jhEyLAsKdFewZoZ4Z3Z");
     const FEES_RECEIVER = new anchor.web3.PublicKey("C326k1ZK43BPfLGVzSBc8991L94a3X7XUvX9BSmJZLbb");
 
     const vaultPDA = anchor.web3.PublicKey.findProgramAddressSync(
@@ -154,8 +153,7 @@ export const ProgramProvider: FC<Props> = ({ children }) => {
             const burnNftsIx = await program.methods.burnNfts()
             .accounts({
                 authority: wallet.publicKey,
-                // feesReceiver: FEES_RECEIVER,
-                feesReceiver: wallet.publicKey,
+                feesReceiver: FEES_RECEIVER,
                 userBurnInfo: userBurnInfo,
                 tokenProgram: TOKEN_PROGRAM_ID,
                 tokenMetadataProgram: TOKEN_METADATA_PROGRAM_ID,
@@ -171,8 +169,7 @@ export const ProgramProvider: FC<Props> = ({ children }) => {
             const burnTokensIx = await program.methods.burnTokens()
             .accounts({
                 authority: wallet.publicKey,
-                // feesReceiver: FEES_RECEIVER,
-                feesReceiver: wallet.publicKey,
+                feesReceiver: FEES_RECEIVER,
                 userBurnInfo: userBurnInfo,
                 tokenProgram: TOKEN_PROGRAM_ID,
                 systemProgram: anchor.web3.SystemProgram.programId  

@@ -14,7 +14,7 @@ adoptcontract = "AADPftBL56zsjQZcCU6XhCKGpq3C2eSLeWcW26rjmjnG"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "devnet"
+cluster = "mainnet"
 wallet = "/Users/elijah/.config/solana/id.json"
 
 [scripts]
