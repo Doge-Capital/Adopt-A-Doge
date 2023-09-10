@@ -21,7 +21,8 @@ wallet = "/Users/elijah/.config/solana/id.json"
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/adoptcontract.ts"
 # anchor run create-vault
 create-vault = "ts-node tests/initvault.ts" 
-mint-to-pda = "ts-node tests/mintToPda.ts" 
+mint-to-pda = "ts-node tests/mintToPda.ts"
+transfer-tickets = "ts-node tests/transferTicketsToPda"
 
 ## Necessary for test validator
 [test.validator]

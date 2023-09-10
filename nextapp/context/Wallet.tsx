@@ -22,7 +22,8 @@ export const Wallet: FC<Props> = ({ children }) => {
     const network = WalletAdapterNetwork.Mainnet;
 
     // You can also provide a custom RPC endpoint.
-    const endpoint = useMemo(() => clusterApiUrl(network), [network]);
+    // const endpoint = useMemo(() => clusterApiUrl(network), [network]);
+    const endpoint = "https://rpc.helius.xyz/?api-key=3c60b359-8acb-4d2f-8f64-b2f748436d45";
 
     const wallets = useMemo(
         () => [
