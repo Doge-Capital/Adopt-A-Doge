@@ -15,9 +15,10 @@ export const FetchNft: FC<{
 }> = ({ selectedNfts, setSelectedNfts, burnSig }) => {
     const [nftData, setNftData] = useState<null | NftData[]>(null);
     const [spinner, setSpinner] = useState<boolean>(false);
+
     const { umi, wallet } = useProgram();
 
-    const fetchUserAssets = async() => {
+    const fetchUserAssets = async () => {
         setSpinner(true);
         if (!wallet) {
             return;
@@ -29,12 +30,12 @@ export const FetchNft: FC<{
         for (const asset of userAssets) {
             if (asset.mint.decimals === 0) {
                 try {
-                    const loadedAsset = await fetchJsonMetadata(umi, asset.metadata.uri);
-                    if (loadedAsset) {
-                        nftData.push([asset, loadedAsset.image as string]);
-                    }
+                    const response = await fetch(asset.metadata.uri);
+                    const data = await response.json();
+                    const imageField = data.image;
+                    nftData.push([asset, imageField]);
                 } catch (error) {
-                    console.log("Fetch error: " + error);
+                    console.error("Error parsing JSON response:", error);
                 }
             }
         }
