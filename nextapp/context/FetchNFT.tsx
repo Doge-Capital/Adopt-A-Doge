@@ -1,10 +1,12 @@
-import { DigitalAsset, fetchAllDigitalAssetByOwner, fetchJsonMetadata } from "@metaplex-foundation/mpl-token-metadata";
+import { DigitalAsset, fetchAllDigitalAssetByOwner } from "@metaplex-foundation/mpl-token-metadata";
 import { fromWeb3JsPublicKey } from "@metaplex-foundation/umi-web3js-adapters";
 import { FC, useEffect, useState } from "react";
 import { Image, Text } from "@nextui-org/react";
 import { BsCheck } from "react-icons/bs";
 import { useProgram } from "./Program";
 import noImg from "../public/assets/images/no-img.png";
+import { unwrapOption } from "@metaplex-foundation/umi";
+import { PublicKey } from "@metaplex-foundation/js";
 
 type NftData = [DigitalAsset, string];
 
@@ -27,22 +29,25 @@ export const FetchNft: FC<{
         const userAssets = await fetchAllDigitalAssetByOwner(umi, fromWeb3JsPublicKey(wallet.publicKey), { tokenAmountFilter: (amount) => amount > 0 });
         let nftData: NftData[] = [];
 
-        for (const asset of userAssets) {
-            if (asset.mint.decimals === 0) {
-                try {
-                    const response = await fetch(asset.metadata.uri);
-                    if (response.ok) {
-                        const data = await response.json();
-                        const imageField = data.image;
-                        nftData.push([asset, imageField]);
-                    } else {
-                        console.error("Fetching image failed: " + response);
-                    }
-                } catch (error) {
-                    console.error("Error parsing JSON response:", error);
+        await Promise.all(
+            userAssets.map(async (asset) => {
+                if (asset.mint.decimals !== 0) return null;
+                if (asset.metadata && unwrapOption(asset.metadata.collection)?.key === fromWeb3JsPublicKey(new PublicKey("2CNP3MVmCj5FEFja676PkvS8Rm7ZVCxdsPWkLgqHb87e"))) {
+                    console.log("Can't burn a Doge :P");
+                    return null;
                 }
-            }
-        }
+                
+                try {
+                    let response = await fetch(asset.metadata.uri);
+                    const data = await response.json();
+                    const imageField = data.image;
+                    nftData.push([asset, imageField]);
+                }
+                catch (error) {
+                    console.error(`Could not fetch json for ${asset.metadata.uri}: ${error}`);
+                }
+            })
+        );
 
         setNftData(nftData);
         setSpinner(false);
