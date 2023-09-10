@@ -31,9 +31,13 @@ export const FetchNft: FC<{
             if (asset.mint.decimals === 0) {
                 try {
                     const response = await fetch(asset.metadata.uri);
-                    const data = await response.json();
-                    const imageField = data.image;
-                    nftData.push([asset, imageField]);
+                    if (response.ok) {
+                        const data = await response.json();
+                        const imageField = data.image;
+                        nftData.push([asset, imageField]);
+                    } else {
+                        console.error("Fetching image failed: " + response);
+                    }
                 } catch (error) {
                     console.error("Error parsing JSON response:", error);
                 }
