@@ -165,7 +165,7 @@ export const ProgramProvider: FC<Props> = ({ children }) => {
                     tokenProgram: TOKEN_PROGRAM_ID,
                     tokenMetadataProgram: TOKEN_METADATA_PROGRAM_ID,
                     systemProgram: anchor.web3.SystemProgram.programId,
-                    instructions: SYSVAR_INSTRUCTIONS_PUBKEY
+                    sysvarInstructions: SYSVAR_INSTRUCTIONS_PUBKEY
                 })
                 .remainingAccounts(accountsMetas.nftsAccountMeta)
                 .instruction();
