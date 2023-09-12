@@ -12,7 +12,7 @@ use mpl_token_metadata::{
     ID as TOKEN_METADATA_PROGRAM_ID,
 };
 
-declare_id!("AADPftBL56zsjQZcCU6XhCKGpq3C2eSLeWcW26rjmjnG");
+declare_id!("AADZeQZ3uHgsXi2j3rgkHunUFe6LaRMQeXkiKqr39Mot");
 
 #[program]
 pub mod adoptcontract {

@@ -1,5 +1,5 @@
 import { DigitalAsset, fetchAllDigitalAssetByOwner } from "@metaplex-foundation/mpl-token-metadata";
-import { fromWeb3JsPublicKey, toWeb3JsPublicKey } from "@metaplex-foundation/umi-web3js-adapters";
+import { fromWeb3JsPublicKey } from "@metaplex-foundation/umi-web3js-adapters";
 import { FC, useEffect, useState } from "react";
 import { Image, Text } from "@nextui-org/react";
 import { BsCheck } from "react-icons/bs";
@@ -7,7 +7,6 @@ import { useProgram } from "./Program";
 import noImg from "../public/assets/images/no-img.png";
 import { unwrapOption } from "@metaplex-foundation/umi";
 import { PublicKey } from "@metaplex-foundation/js";
-import { getAccount, getAssociatedTokenAddress, } from "@solana/spl-token";
 
 type NftData = [DigitalAsset, string];
 
@@ -19,7 +18,7 @@ export const FetchNft: FC<{
     const [nftData, setNftData] = useState<null | NftData[]>(null);
     const [spinner, setSpinner] = useState<boolean>(false);
 
-    const { umi, wallet, connection } = useProgram();
+    const { umi, wallet } = useProgram();
 
     const fetchUserAssets = async () => {
         setSpinner(true);
@@ -38,12 +37,6 @@ export const FetchNft: FC<{
                         console.log("Can't burn a Doge :P");
                         return null;
                     }
-
-                    // const nftAta = wallet && await getAssociatedTokenAddress(toWeb3JsPublicKey(asset.mint.publicKey), wallet?.publicKey);
-                    // const accInfo = await getAccount(connection, nftAta);
-                    // if (accInfo.isFrozen) {
-                    //     return null;
-                    // }
 
                     try {
                         let response = await fetch(asset.metadata.uri);

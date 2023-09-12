@@ -2,13 +2,13 @@
 seeds = false
 skip-lint = false
 [programs.localnet]
-adoptcontract = "AADPftBL56zsjQZcCU6XhCKGpq3C2eSLeWcW26rjmjnG"
+adoptcontract = "AADZeQZ3uHgsXi2j3rgkHunUFe6LaRMQeXkiKqr39Mot"
 
 [programs.devnet]
-adoptcontract = "AADPftBL56zsjQZcCU6XhCKGpq3C2eSLeWcW26rjmjnG"
+adoptcontract = "AADZeQZ3uHgsXi2j3rgkHunUFe6LaRMQeXkiKqr39Mot"
 
 [programs.mainnet]
-adoptcontract = "AADPftBL56zsjQZcCU6XhCKGpq3C2eSLeWcW26rjmjnG"
+adoptcontract = "AADZeQZ3uHgsXi2j3rgkHunUFe6LaRMQeXkiKqr39Mot"
 
 [registry]
 url = "https://api.apr.dev"
