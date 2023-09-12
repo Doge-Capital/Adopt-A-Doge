@@ -1,12 +1,16 @@
+use anchor_lang::solana_program::sysvar::instructions::check_id as ixs_check_id;
 use anchor_lang::{prelude::*, solana_program::program::invoke, system_program};
 use anchor_spl::{
     associated_token::AssociatedToken,
     token::{
-        burn, close_account, transfer_checked, Burn, CloseAccount, Mint, Token, TokenAccount,
-        TransferChecked,
+        burn, close_account, thaw_account, transfer_checked, Burn, CloseAccount, Mint, ThawAccount,
+        Token, TokenAccount, TransferChecked,
     },
 };
-use mpl_token_metadata::{instruction::burn_nft, ID as TOKEN_METADATA_PROGRAM_ID};
+use mpl_token_metadata::{
+    accounts::Metadata, instructions::BurnV1Builder, types::TokenStandard,
+    ID as TOKEN_METADATA_PROGRAM_ID,
+};
 
 declare_id!("AADPftBL56zsjQZcCU6XhCKGpq3C2eSLeWcW26rjmjnG");
 
@@ -17,7 +21,7 @@ pub mod adoptcontract {
     const ADDITIONAL_TX_FEE: u64 = 100_000_000; // 0.1 SOL per 1 NFT burn
     const ONE: u64 = 1;
     const TWO: u64 = 2;
-    const FOUR: u64 = 4;
+    const FIVE: u64 = 5;
 
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
         let bump = *ctx
@@ -36,16 +40,16 @@ pub mod adoptcontract {
         // Creates an iterator over the remaining accounts
         let mut remaining_accounts_iter = ctx.remaining_accounts.iter();
         let nfts_to_burn: u64 = (ctx.remaining_accounts.len() as u64)
-            .checked_div(FOUR)
+            .checked_div(FIVE)
             .unwrap();
 
-        // Since we need to iterate over 4 "remaining accounts" at once, we need to slice all of them by 4
+        // Since we need to iterate over 5 "remaining accounts" at once, we need to slice all of them by 5
         for chunk in remaining_accounts_iter
             .by_ref()
             .collect::<Vec<_>>()
-            .chunks(FOUR as usize)
+            .chunks(FIVE as usize)
         {
-            if chunk.len() != FOUR as usize {
+            if chunk.len() != FIVE as usize {
                 return err!(ErrorCode::WrongBurnRemainingAccountsChunk);
             }
 
@@ -56,27 +60,45 @@ pub mod adoptcontract {
             let edition_account = chunk[2];
             let ata = chunk[3];
 
-            invoke(
-                &burn_nft(
-                    ctx.accounts.token_metadata_program.key(),
-                    metadata_account.key(),
-                    ctx.accounts.authority.key(),
-                    mint_account.key(),
-                    ata.key(),
-                    edition_account.key(),
-                    ctx.accounts.token_program.key(),
-                    None,
-                ),
-                &[
-                    ctx.accounts.token_metadata_program.to_account_info(),
-                    metadata_account.to_account_info(),
-                    ctx.accounts.authority.to_account_info(),
-                    mint_account.to_account_info(),
-                    ata.to_account_info(),
-                    edition_account.to_account_info(),
-                    ctx.accounts.token_program.to_account_info(),
-                ],
-            )?;
+            let amount_to_burn =
+                TokenAccount::try_deserialize(&mut &**ata.try_borrow_data().unwrap())
+                    .unwrap()
+                    .amount;
+
+            let mut builder = BurnV1Builder::new();
+            builder
+                .authority(ctx.accounts.authority.key())
+                .metadata(metadata_account.key())
+                .mint(mint_account.key())
+                .edition(Some(edition_account.key()))
+                .token(ata.key())
+                .sysvar_instructions(ctx.accounts.sysvar_instructions.key())
+                .amount(amount_to_burn);
+
+            let mut burn_infos = vec![
+                ctx.accounts.token_metadata_program.to_account_info(),
+                ctx.accounts.authority.to_account_info(),
+                metadata_account.to_account_info(),
+                mint_account.to_account_info(),
+                edition_account.to_account_info(),
+                ata.to_account_info(),
+                ctx.accounts.sysvar_instructions.to_account_info(),
+            ];
+
+            let metadata: Metadata = Metadata::try_from(metadata_account)?;
+
+            if matches!(
+                metadata.token_standard,
+                Some(TokenStandard::ProgrammableNonFungible)
+            ) {
+                let token_record = chunk[4];
+                builder.token_record(Some(token_record.key()));
+                burn_infos.push(token_record.to_account_info());
+            }
+
+            let burn_instruction = builder.instruction();
+
+            invoke(&burn_instruction, &burn_infos)?;
 
             user_info.nfts_burnt = user_info.nfts_burnt.checked_add(ONE).unwrap();
         }
@@ -127,6 +149,19 @@ pub mod adoptcontract {
 
             let from_data =
                 TokenAccount::try_deserialize(&mut &**from.try_borrow_data().unwrap()).unwrap();
+
+            if from_data.is_frozen() {
+                let thaw_cpi_ctx = CpiContext::new(
+                    ctx.accounts.token_program.to_account_info(),
+                    ThawAccount {
+                        account: from.to_account_info(),
+                        mint: mint_account.to_account_info(),
+                        authority: ctx.accounts.authority.to_account_info(),
+                    },
+                );
+
+                thaw_account(thaw_cpi_ctx)?;
+            }
 
             let burn_cpi_ctx = CpiContext::new(
                 ctx.accounts.token_program.to_account_info(),
@@ -208,7 +243,7 @@ pub mod adoptcontract {
         );
 
         let amount_to_send: u64 = user_info.nfts_burnt;
-    
+
         transfer_checked(cpi_ctx, amount_to_send, 0)?;
 
         // refresh the state
@@ -240,10 +275,10 @@ pub struct Initialize<'info> {
 pub struct BurnNFT<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
-    /// CHECK: we'll add a particular hard-coded address to the constraints
+    /// CHECK: constraint check
     #[account(
         mut,
-        address = Pubkey::try_from("C326k1ZK43BPfLGVzSBc8991L94a3X7XUvX9BSmJZLbb").unwrap() @ ErrorCode::WrongFeesReceiverAddress
+        // address = Pubkey::try_from("C326k1ZK43BPfLGVzSBc8991L94a3X7XUvX9BSmJZLbb").unwrap() @ ErrorCode::WrongFeesReceiverAddress
     )]
     pub fees_receiver: AccountInfo<'info>,
     /// CHECK: address check
@@ -261,16 +296,21 @@ pub struct BurnNFT<'info> {
     pub user_burn_info: Account<'info, UserBurnInfo>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
+    /// CHECK: is checked by CPI
+    #[account(
+        constraint = ixs_check_id(sysvar_instructions.key)
+    )]
+    pub sysvar_instructions: AccountInfo<'info>,
 }
 
 #[derive(Accounts)]
 pub struct BurnToken<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
-    /// CHECK: we'll add a particular hard-coded address to the constraints
+    /// CHECK: constraint check
     #[account(
         mut,
-        address = Pubkey::try_from("C326k1ZK43BPfLGVzSBc8991L94a3X7XUvX9BSmJZLbb").unwrap() @ ErrorCode::WrongFeesReceiverAddress
+        // address = Pubkey::try_from("C326k1ZK43BPfLGVzSBc8991L94a3X7XUvX9BSmJZLbb").unwrap() @ ErrorCode::WrongFeesReceiverAddress
     )]
     pub fees_receiver: AccountInfo<'info>,
     #[account(

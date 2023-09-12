@@ -1,12 +1,12 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { Adoptcontract } from "../target/types/adoptcontract";
-import { Metaplex, Sft, keypairIdentity, toBigNumber, } from "@metaplex-foundation/js";
+import { Metaplex, Nft, Sft, keypairIdentity, toBigNumber, } from "@metaplex-foundation/js";
 import { TokenStandard } from '@metaplex-foundation/mpl-token-metadata';
 import { getAssociatedTokenAddress, getOrCreateAssociatedTokenAccount } from "@solana/spl-token";
 import * as fs from 'fs';
 
-const mintSftToPda = async (): Promise<[Sft, anchor.web3.PublicKey, anchor.web3.PublicKey]> => {
+const mintSftToPda = async (): Promise<[Nft, anchor.web3.PublicKey, anchor.web3.PublicKey]> => {
     const provider = anchor.AnchorProvider.env();
     anchor.setProvider(provider);
     const program = anchor.workspace.Adoptcontract as Program<Adoptcontract>;
@@ -28,36 +28,35 @@ const mintSftToPda = async (): Promise<[Sft, anchor.web3.PublicKey, anchor.web3.
         program.programId
     )[0];
 
-    console.log("Minting an SFT...");
-    const { sft } = await metaplex.nfts().createSft({
+    console.log("Minting an pNFT...");
+    const { nft } = await metaplex.nfts().create({
         uri: "https://raw.githubusercontent.com/Coding-and-Crypto/Solana-NFT-Marketplace/master/assets/example.json",
-        name: "TICKET DEVNET",
+        name: "TICKET DEVNET pNFT",
         sellerFeeBasisPoints: 500, // Represents 5.00%.
         creators: [{ address: provider.wallet.publicKey, share: 100 }],
-        decimals: 0,
-        tokenStandard: TokenStandard.FungibleAsset,
+        tokenStandard: TokenStandard.ProgrammableNonFungible,
     }, { commitment: "finalized" });
 
-    console.log("SFT created (mint): " + sft.mint.address + "\n" + "NFT name: " + sft.name + "\n" + "NFT Metadata: " + sft.metadataAddress);
+    console.log("SFT created (mint): " + nft.mint.address + "\n" + "NFT name: " + nft.name + "\n" + "NFT Metadata: " + nft.metadataAddress);
 
-    const nftATA = await getAssociatedTokenAddress(sft.mint.address, valutPda, true);
-    const myATA = await getAssociatedTokenAddress(sft.mint.address, testKeypair.publicKey);
+    const nftATA = await getAssociatedTokenAddress(nft.mint.address, valutPda, true);
+    const myATA = await getAssociatedTokenAddress(nft.mint.address, testKeypair.publicKey);
 
     console.log("sft ata: " + nftATA);
     console.log("my ata: " + myATA);
 
-    const mint_tx = await metaplex.tokens().mint({
-        mintAddress: sft.mint.address,
-        amount: {
-            basisPoints: toBigNumber(500), currency: {
-                symbol: "TCKT",
-                decimals: 0,
-                namespace: "spl-token"
-            }
-        },
-        toOwner: valutPda
-    })
-    console.log("Mint tx: " +  mint_tx.response.signature);
+    // const mint_tx = await metaplex.tokens().mint({
+    //     mintAddress: nft.mint.address,
+    //     amount: {
+    //         basisPoints: toBigNumber(500), currency: {
+    //             symbol: "TCKT",
+    //             decimals: 0,
+    //             namespace: "spl-token"
+    //         }
+    //     },
+    //     toOwner: vaultPda
+    // })
+    // console.log("Mint tx: " +  mint_tx.response.signature);
 
     // const send_tx = await metaplex.tokens().send({
     //     mintAddress: sft.mint.address,
@@ -74,9 +73,9 @@ const mintSftToPda = async (): Promise<[Sft, anchor.web3.PublicKey, anchor.web3.
     // console.log(`Transfer to PDA transaction signature: ${send_tx.response.signature}`);
 
     const updatedSft = await metaplex.nfts().findByMint({
-        mintAddress: sft.mint.address,
+        mintAddress: nft.mint.address,
         tokenOwner: valutPda
-    }) as Sft;
+    }) as Nft;
 
     console.log("NFT Token Account (PDA TA): " + nftATA + "\n" + "*--------------------*" + "\n");
 

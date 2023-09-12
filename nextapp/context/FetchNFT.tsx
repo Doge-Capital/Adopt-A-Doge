@@ -1,5 +1,5 @@
 import { DigitalAsset, fetchAllDigitalAssetByOwner } from "@metaplex-foundation/mpl-token-metadata";
-import { fromWeb3JsPublicKey } from "@metaplex-foundation/umi-web3js-adapters";
+import { fromWeb3JsPublicKey, toWeb3JsPublicKey } from "@metaplex-foundation/umi-web3js-adapters";
 import { FC, useEffect, useState } from "react";
 import { Image, Text } from "@nextui-org/react";
 import { BsCheck } from "react-icons/bs";
@@ -7,6 +7,7 @@ import { useProgram } from "./Program";
 import noImg from "../public/assets/images/no-img.png";
 import { unwrapOption } from "@metaplex-foundation/umi";
 import { PublicKey } from "@metaplex-foundation/js";
+import { getAccount, getAssociatedTokenAddress, } from "@solana/spl-token";
 
 type NftData = [DigitalAsset, string];
 
@@ -18,7 +19,7 @@ export const FetchNft: FC<{
     const [nftData, setNftData] = useState<null | NftData[]>(null);
     const [spinner, setSpinner] = useState<boolean>(false);
 
-    const { umi, wallet } = useProgram();
+    const { umi, wallet, connection } = useProgram();
 
     const fetchUserAssets = async () => {
         setSpinner(true);
@@ -26,28 +27,36 @@ export const FetchNft: FC<{
             return;
         }
 
-        const userAssets = await fetchAllDigitalAssetByOwner(umi, fromWeb3JsPublicKey(wallet.publicKey), { tokenAmountFilter: (amount) => amount > 0 });
+        const userAssets = await fetchAllDigitalAssetByOwner(umi, fromWeb3JsPublicKey(wallet.publicKey), { tokenAmountFilter: (amount) => amount > 0 }).catch(err => console.error(err));
         let nftData: NftData[] = [];
 
-        await Promise.all(
-            userAssets.map(async (asset) => {
-                if (asset.mint.decimals !== 0) return null;
-                if (asset.metadata && unwrapOption(asset.metadata.collection)?.key === fromWeb3JsPublicKey(new PublicKey("2CNP3MVmCj5FEFja676PkvS8Rm7ZVCxdsPWkLgqHb87e"))) {
-                    console.log("Can't burn a Doge :P");
-                    return null;
-                }
-                
-                try {
-                    let response = await fetch(asset.metadata.uri);
-                    const data = await response.json();
-                    const imageField = data.image;
-                    nftData.push([asset, imageField]);
-                }
-                catch (error) {
-                    console.error(`Could not fetch json for ${asset.metadata.uri}: ${error}`);
-                }
-            })
-        );
+        if (userAssets) {
+            await Promise.all(
+                userAssets.map(async (asset) => {
+                    if (asset.mint.decimals !== 0) return null;
+                    if (asset.metadata && unwrapOption(asset.metadata.collection)?.key === fromWeb3JsPublicKey(new PublicKey("2CNP3MVmCj5FEFja676PkvS8Rm7ZVCxdsPWkLgqHb87e"))) {
+                        console.log("Can't burn a Doge :P");
+                        return null;
+                    }
+
+                    // const nftAta = wallet && await getAssociatedTokenAddress(toWeb3JsPublicKey(asset.mint.publicKey), wallet?.publicKey);
+                    // const accInfo = await getAccount(connection, nftAta);
+                    // if (accInfo.isFrozen) {
+                    //     return null;
+                    // }
+
+                    try {
+                        let response = await fetch(asset.metadata.uri);
+                        const data = await response.json();
+                        const imageField = data.image;
+                        nftData.push([asset, imageField]);
+                    }
+                    catch (error) {
+                        console.error(`Could not fetch json for ${asset.metadata.uri}: ${error}`);
+                    }
+                })
+            );
+        }
 
         setNftData(nftData);
         setSpinner(false);
