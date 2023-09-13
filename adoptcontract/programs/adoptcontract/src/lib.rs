@@ -333,7 +333,7 @@ pub struct SendTicket<'info> {
         mut,
         seeds = [b"authority".as_ref()],
         bump,
-        address = Pubkey::try_from("3oYQtoxG1TDxpqzwm5GQjE5Faqp5dcRyjZAZDh142Tci").unwrap() @ ErrorCode::WrongPDAAddress
+        address = Pubkey::try_from("5dSNUCqAsNLSAyEnviuYNVUxmHEiihxAvbKkiTFtVndB").unwrap() @ ErrorCode::WrongPDAAddress
     )]
     pub authority: Account<'info, NftsValutAccount>,
     #[account(
