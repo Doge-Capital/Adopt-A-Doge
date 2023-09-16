@@ -55,7 +55,6 @@ export const FetchNft: FC<{
         setSpinner(false);
     }
 
-    // fetch nfts when connected wallet changes
     useEffect(() => {
         fetchUserAssets();
         setSelectedNfts([]);
