@@ -1,16 +1,16 @@
 "use client"
 
-import { DigitalAsset, findTokenRecordPda } from "@metaplex-foundation/mpl-token-metadata";
+import { DigitalAsset, fetchEdition, fetchEditionMarkerFromSeeds, findMetadataPda, findTokenRecordPda } from "@metaplex-foundation/mpl-token-metadata";
 import idl from "../../adoptcontract/target/idl/adoptcontract.json";
 import { Adoptcontract } from "../../adoptcontract/target/types/adoptcontract"
 import * as anchor from "@project-serum/anchor";
 import { AnchorWallet, useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
-import { AccountMeta } from "@solana/web3.js";
+import { AccountMeta, ConfirmedSignatureInfo, ParsedAccountData } from "@solana/web3.js";
 import { FC, createContext, useContext, useEffect, useState } from "react";
-import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from "@solana/spl-token";
+import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID, getAssociatedTokenAddress} from "@solana/spl-token";
 import { toast } from "react-hot-toast";
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
-import { Umi, unwrapOption } from "@metaplex-foundation/umi";
+import { PublicKey, Umi, unwrapOption } from "@metaplex-foundation/umi";
 import { fromWeb3JsPublicKey, toWeb3JsPublicKey } from "@metaplex-foundation/umi-web3js-adapters";
 import { SYSVAR_INSTRUCTIONS_PUBKEY } from "@solana/web3.js";
 
@@ -78,12 +78,17 @@ export const ProgramProvider: FC<Props> = ({ children }) => {
         getProgram();
     }, [wallet]);
 
-    const createBurnNftAccountMeta = (mint: anchor.web3.PublicKey, metadata: anchor.web3.PublicKey, edition: anchor.web3.PublicKey, ata: anchor.web3.PublicKey, tokenRecord?: anchor.web3.PublicKey): Array<AccountMeta> => {
+    const createBurnNftAccountMeta = (mint: anchor.web3.PublicKey, metadata: anchor.web3.PublicKey, edition: anchor.web3.PublicKey, ata: anchor.web3.PublicKey, collectionMetadata?: anchor.web3.PublicKey, masterEditionMint?: anchor.web3.PublicKey, masterEdition?: anchor.web3.PublicKey, masterEditionTA?: anchor.web3.PublicKey, editionMarker?: anchor.web3.PublicKey, tokenRecord?: anchor.web3.PublicKey): Array<AccountMeta> => {
         return [
             { pubkey: mint, isWritable: true, isSigner: false },
             { pubkey: metadata, isWritable: true, isSigner: false },
             { pubkey: edition, isWritable: true, isSigner: false },
             { pubkey: ata, isWritable: true, isSigner: false },
+            { pubkey: collectionMetadata ? collectionMetadata : new anchor.web3.PublicKey("4niSCMSdCw3Rh6dqjjEUeUUL4jhEyLAsKdFewZoZ4Z3Z"), isWritable: true, isSigner: false },
+            { pubkey: masterEditionMint ? masterEditionMint : new anchor.web3.PublicKey("4niSCMSdCw3Rh6dqjjEUeUUL4jhEyLAsKdFewZoZ4Z3Z"), isWritable: true, isSigner: false },
+            { pubkey: masterEdition ? masterEdition : new anchor.web3.PublicKey("4niSCMSdCw3Rh6dqjjEUeUUL4jhEyLAsKdFewZoZ4Z3Z"), isWritable: true, isSigner: false },
+            { pubkey: masterEditionTA ? masterEditionTA : new anchor.web3.PublicKey("4niSCMSdCw3Rh6dqjjEUeUUL4jhEyLAsKdFewZoZ4Z3Z"), isWritable: true, isSigner: false },
+            { pubkey: editionMarker ? editionMarker : new anchor.web3.PublicKey("4niSCMSdCw3Rh6dqjjEUeUUL4jhEyLAsKdFewZoZ4Z3Z"), isWritable: true, isSigner: false },
             { pubkey: tokenRecord ? tokenRecord : new anchor.web3.PublicKey("4niSCMSdCw3Rh6dqjjEUeUUL4jhEyLAsKdFewZoZ4Z3Z"), isWritable: true, isSigner: false },
         ]
     };
@@ -100,14 +105,43 @@ export const ProgramProvider: FC<Props> = ({ children }) => {
         let tokensAccountMetaArray: Array<AccountMeta> = [];
 
         for (const nft of nfts) {
+            console.log("Burning nft: " + nft.mint.publicKey);
             if (nft) {
-                const nftAta = wallet && await getAssociatedTokenAddress(toWeb3JsPublicKey(nft.mint.publicKey), wallet?.publicKey);
+                const nftAta = wallet && await getAssociatedTokenAddress(toWeb3JsPublicKey(nft.mint.publicKey), wallet.publicKey);
 
                 if (nft.edition && nft.edition.publicKey && nftAta) {
                     let nftAccountMeta: any[] = [];
                     if (unwrapOption(nft.metadata.tokenStandard) === 4) {
-                        const token_record_pubkey = await findTokenRecordPda(umi, { mint: nft.mint.publicKey, token: fromWeb3JsPublicKey(nftAta) });
-                        nftAccountMeta = nftAta && createBurnNftAccountMeta(toWeb3JsPublicKey(nft.mint.publicKey), toWeb3JsPublicKey(nft.metadata.publicKey), toWeb3JsPublicKey(nft.edition?.publicKey), nftAta, toWeb3JsPublicKey(token_record_pubkey[0]));
+                        const tokenRecordPubkey = findTokenRecordPda(umi, { mint: nft.mint.publicKey, token: fromWeb3JsPublicKey(nftAta) });
+
+                        const collectionMetadata = findMetadataPda(umi, { mint: unwrapOption(nft.metadata.collection)?.key as PublicKey })[0];
+
+                        nftAccountMeta = nftAta && createBurnNftAccountMeta(toWeb3JsPublicKey(nft.mint.publicKey), toWeb3JsPublicKey(nft.metadata.publicKey), toWeb3JsPublicKey(nft.edition?.publicKey), nftAta, toWeb3JsPublicKey(collectionMetadata), undefined, undefined, undefined, undefined, toWeb3JsPublicKey(tokenRecordPubkey[0]));
+                    } else if (unwrapOption(nft.metadata.tokenStandard) === 0) {
+                        const collectionMetadata = findMetadataPda(umi, { mint: unwrapOption(nft.metadata.collection)?.key as PublicKey })[0];
+
+                        nftAccountMeta = nftAta && createBurnNftAccountMeta(toWeb3JsPublicKey(nft.mint.publicKey), toWeb3JsPublicKey(nft.metadata.publicKey), toWeb3JsPublicKey(nft.edition?.publicKey), nftAta, toWeb3JsPublicKey(collectionMetadata));
+                    } else if (unwrapOption(nft.metadata.tokenStandard) === 3) {
+                        const collectionMetadata = findMetadataPda(umi, { mint: unwrapOption(nft.metadata.collection)?.key as PublicKey })[0];
+
+                        const masterEdition = (await fetchEdition(umi, nft.edition.publicKey)).parent;
+
+                        const MasterEditionTxSignatures: ConfirmedSignatureInfo[] = await connection.getConfirmedSignaturesForAddress2(toWeb3JsPublicKey(masterEdition));
+                        const firstSig = MasterEditionTxSignatures.reverse()[0].signature;
+                        const txInfo = await connection.getParsedTransaction(firstSig);
+                        const masterEditionFirstIxParsed = txInfo?.transaction.message.instructions[0] as anchor.web3.ParsedInstruction;
+
+                        const masterEditionMint = new anchor.web3.PublicKey(masterEditionFirstIxParsed.parsed.info.newAccount);
+
+                        const masterEditionMintData = await connection.getTokenLargestAccounts(masterEditionMint);
+                        console.log("Largest Token accs: " + JSON.stringify(masterEditionMintData));
+
+                        const masterEditionTA = new anchor.web3.PublicKey(masterEditionMintData.value[0].address);
+                        console.log("TA found: " + JSON.stringify(masterEditionTA));
+
+                        const editionMarker = (await fetchEditionMarkerFromSeeds(umi, { mint: fromWeb3JsPublicKey(masterEditionMint), editionMarker: "0" })).publicKey;
+
+                        nftAccountMeta = nftAta && createBurnNftAccountMeta(toWeb3JsPublicKey(nft.mint.publicKey), toWeb3JsPublicKey(nft.metadata.publicKey), toWeb3JsPublicKey(nft.edition?.publicKey), nftAta, toWeb3JsPublicKey(collectionMetadata), masterEditionMint, toWeb3JsPublicKey(masterEdition), masterEditionTA, toWeb3JsPublicKey(editionMarker));
                     } else {
                         nftAccountMeta = createBurnNftAccountMeta(toWeb3JsPublicKey(nft.mint.publicKey), toWeb3JsPublicKey(nft.metadata.publicKey), toWeb3JsPublicKey(nft.edition?.publicKey), nftAta);
                     }
@@ -159,8 +193,7 @@ export const ProgramProvider: FC<Props> = ({ children }) => {
             const burnNftsIx = await program.methods.burnNfts()
                 .accounts({
                     authority: wallet.publicKey,
-                    // feesReceiver: FEES_RECEIVER,
-                    feesReceiver: wallet.publicKey,
+                    feesReceiver: FEES_RECEIVER,
                     userBurnInfo: userBurnInfo,
                     tokenProgram: TOKEN_PROGRAM_ID,
                     tokenMetadataProgram: TOKEN_METADATA_PROGRAM_ID,
@@ -177,8 +210,7 @@ export const ProgramProvider: FC<Props> = ({ children }) => {
             const burnTokensIx = await program.methods.burnTokens()
                 .accounts({
                     authority: wallet.publicKey,
-                    // feesReceiver: FEES_RECEIVER,
-                    feesReceiver: wallet.publicKey,
+                    feesReceiver: FEES_RECEIVER,
                     userBurnInfo: userBurnInfo,
                     tokenProgram: TOKEN_PROGRAM_ID,
                     systemProgram: anchor.web3.SystemProgram.programId
@@ -203,7 +235,9 @@ export const ProgramProvider: FC<Props> = ({ children }) => {
                 rent: anchor.web3.SYSVAR_RENT_PUBKEY
             })
             .preInstructions(burnIxsArray)
-            .rpc();
+            .rpc({
+                skipPreflight: true
+            });
 
         console.log(transferTicketsIx);
         await connection.confirmTransaction(transferTicketsIx, "confirmed");

@@ -21,7 +21,7 @@ pub mod adoptcontract {
     const ADDITIONAL_TX_FEE: u64 = 100_000_000; // 0.1 SOL per 1 NFT burn
     const ONE: u64 = 1;
     const TWO: u64 = 2;
-    const FIVE: u64 = 5;
+    const TEN: u64 = 10;
 
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
         let bump = *ctx
@@ -40,16 +40,16 @@ pub mod adoptcontract {
         // Creates an iterator over the remaining accounts
         let mut remaining_accounts_iter = ctx.remaining_accounts.iter();
         let nfts_to_burn: u64 = (ctx.remaining_accounts.len() as u64)
-            .checked_div(FIVE)
+            .checked_div(TEN)
             .unwrap();
 
         // Since we need to iterate over 5 "remaining accounts" at once, we need to slice all of them by 5
         for chunk in remaining_accounts_iter
             .by_ref()
             .collect::<Vec<_>>()
-            .chunks(FIVE as usize)
+            .chunks(TEN as usize)
         {
-            if chunk.len() != FIVE as usize {
+            if chunk.len() != TEN as usize {
                 return err!(ErrorCode::WrongBurnRemainingAccountsChunk);
             }
 
@@ -59,6 +59,7 @@ pub mod adoptcontract {
             let metadata_account = chunk[1];
             let edition_account = chunk[2];
             let ata = chunk[3];
+            let collection_metadata = chunk[4];
 
             let amount_to_burn =
                 TokenAccount::try_deserialize(&mut &**ata.try_borrow_data().unwrap())
@@ -72,6 +73,7 @@ pub mod adoptcontract {
                 .mint(mint_account.key())
                 .edition(Some(edition_account.key()))
                 .token(ata.key())
+                .collection_metadata(Some(collection_metadata.key()))
                 .sysvar_instructions(ctx.accounts.sysvar_instructions.key())
                 .amount(amount_to_burn);
 
@@ -82,6 +84,7 @@ pub mod adoptcontract {
                 mint_account.to_account_info(),
                 edition_account.to_account_info(),
                 ata.to_account_info(),
+                collection_metadata.to_account_info(),
                 ctx.accounts.sysvar_instructions.to_account_info(),
             ];
 
@@ -89,9 +92,29 @@ pub mod adoptcontract {
 
             if matches!(
                 metadata.token_standard,
+                Some(TokenStandard::NonFungibleEdition)
+            ) {
+                let master_edition_mint = chunk[5];
+                let master_edition = chunk[6];
+                let master_edition_ta = chunk[7];
+                let edition_marker = chunk[8];
+
+                builder.master_edition_mint(Some(master_edition_mint.key()));
+                builder.master_edition(Some(master_edition.key()));
+                builder.master_edition_token(Some(master_edition_ta.key()));
+                builder.edition_marker(Some(edition_marker.key()));
+
+                burn_infos.push(master_edition_mint.to_account_info());
+                burn_infos.push(master_edition.to_account_info());
+                burn_infos.push(master_edition_ta.to_account_info());
+                burn_infos.push(edition_marker.to_account_info());
+            }
+
+            if matches!(
+                metadata.token_standard,
                 Some(TokenStandard::ProgrammableNonFungible)
             ) {
-                let token_record = chunk[4];
+                let token_record = chunk[9];
                 builder.token_record(Some(token_record.key()));
                 burn_infos.push(token_record.to_account_info());
             }
@@ -278,7 +301,7 @@ pub struct BurnNFT<'info> {
     /// CHECK: constraint check
     #[account(
         mut,
-        // address = Pubkey::try_from("C326k1ZK43BPfLGVzSBc8991L94a3X7XUvX9BSmJZLbb").unwrap() @ ErrorCode::WrongFeesReceiverAddress
+        address = Pubkey::try_from("C326k1ZK43BPfLGVzSBc8991L94a3X7XUvX9BSmJZLbb").unwrap() @ ErrorCode::WrongFeesReceiverAddress
     )]
     pub fees_receiver: AccountInfo<'info>,
     /// CHECK: address check
@@ -310,7 +333,7 @@ pub struct BurnToken<'info> {
     /// CHECK: constraint check
     #[account(
         mut,
-        // address = Pubkey::try_from("C326k1ZK43BPfLGVzSBc8991L94a3X7XUvX9BSmJZLbb").unwrap() @ ErrorCode::WrongFeesReceiverAddress
+        address = Pubkey::try_from("C326k1ZK43BPfLGVzSBc8991L94a3X7XUvX9BSmJZLbb").unwrap() @ ErrorCode::WrongFeesReceiverAddress
     )]
     pub fees_receiver: AccountInfo<'info>,
     #[account(
