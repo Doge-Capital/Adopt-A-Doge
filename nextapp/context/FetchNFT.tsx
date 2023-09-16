@@ -34,7 +34,6 @@ export const FetchNft: FC<{
                 userAssets.map(async (asset) => {
                     if (asset.mint.decimals !== 0) return null;
                     if (asset.metadata && unwrapOption(asset.metadata.collection)?.key === fromWeb3JsPublicKey(new PublicKey("2CNP3MVmCj5FEFja676PkvS8Rm7ZVCxdsPWkLgqHb87e"))) {
-                        console.log("Can't burn a Doge :P");
                         return null;
                     }
 
