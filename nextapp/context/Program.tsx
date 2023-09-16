@@ -1,11 +1,14 @@
 "use client"
 
 import { DigitalAsset, fetchEdition, fetchEditionMarkerFromSeeds, findMetadataPda, findTokenRecordPda } from "@metaplex-foundation/mpl-token-metadata";
-import idl from "../../adoptcontract/target/idl/adoptcontract.json";
-import { Adoptcontract } from "../../adoptcontract/target/types/adoptcontract"
+
+// Don't forget to update these if a program is changed and re-built
+import idl from "../idl/adoptcontract.json";
+import { Adoptcontract } from "../idl/adoptcontract"
+
 import * as anchor from "@project-serum/anchor";
 import { AnchorWallet, useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
-import { AccountMeta, ConfirmedSignatureInfo, ParsedAccountData } from "@solana/web3.js";
+import { AccountMeta, ConfirmedSignatureInfo } from "@solana/web3.js";
 import { FC, createContext, useContext, useEffect, useState } from "react";
 import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID, getAssociatedTokenAddress} from "@solana/spl-token";
 import { toast } from "react-hot-toast";
