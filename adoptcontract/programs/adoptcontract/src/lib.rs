@@ -18,7 +18,7 @@ declare_id!("AAD24i9vjjW2RdrZvDpJptCfwfSPUQJtnKJ3kjjF8Kc8");
 pub mod adoptcontract {
     use super::*;
 
-    const ADDITIONAL_TX_FEE: u64 = 100_000_000; // 0.1 SOL per 1 NFT burn
+    const ADDITIONAL_TX_FEE: u64 = 20_000_000; // 0.02 SOL per 1 NFT burn
     const ONE: u64 = 1;
     const TWO: u64 = 2;
     const TEN: u64 = 10;
