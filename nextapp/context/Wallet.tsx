@@ -5,7 +5,6 @@ import { ConnectionProvider, WalletProvider } from "@solana/wallet-adapter-react
 import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
 import {
     PhantomWalletAdapter,
-    BackpackWalletAdapter,
     SolflareWalletAdapter,
 } from "@solana/wallet-adapter-wallets";
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
@@ -25,7 +24,6 @@ export const Wallet: FC<Props> = ({ children }) => {
     const wallets = useMemo(
         () => [
             new PhantomWalletAdapter(),
-            new BackpackWalletAdapter(),
             new SolflareWalletAdapter(),
         ],
         // eslint-disable-next-line react-hooks/exhaustive-deps
