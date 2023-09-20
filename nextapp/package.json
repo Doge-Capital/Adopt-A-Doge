@@ -30,6 +30,9 @@
     "react-icons": "^4.4.0",
     "react-use": "^17.4.0"
   },
+  "resolutions": {
+    "next/@swc/helpers": "0.4.36"
+  },
   "devDependencies": {
     "@types/node": "18.7.18",
     "@types/react": "18.0.20",
