@@ -15,6 +15,8 @@ async function initVaultPda() {
         program.programId
     )[0];
 
+    console.log("Vault PDA: " + vaultPDA);
+
     const initIx = await program.methods.initialize()
         .accounts({
             signer: provider.wallet.publicKey,

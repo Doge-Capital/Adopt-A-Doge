@@ -1,20 +1,27 @@
+use anchor_lang::solana_program::sysvar::instructions::check_id as ixs_check_id;
 use anchor_lang::{prelude::*, solana_program::program::invoke, system_program};
 use anchor_spl::{
     associated_token::AssociatedToken,
-    token::{transfer_checked, Token, TransferChecked},
+    token::{
+        burn, close_account, thaw_account, transfer_checked, Burn, CloseAccount, Mint, ThawAccount,
+        Token, TokenAccount, TransferChecked,
+    },
 };
-use mpl_token_metadata::{instruction::burn_nft, ID as TOKEN_METADATA_PROGRAM_ID};
+use mpl_token_metadata::{
+    accounts::Metadata, instructions::BurnV1Builder, types::TokenStandard,
+    ID as TOKEN_METADATA_PROGRAM_ID,
+};
 
-declare_id!("AADPftBL56zsjQZcCU6XhCKGpq3C2eSLeWcW26rjmjnG");
+declare_id!("AAD24i9vjjW2RdrZvDpJptCfwfSPUQJtnKJ3kjjF8Kc8");
 
 #[program]
 pub mod adoptcontract {
     use super::*;
 
-    const ADDITIONAL_TX_FEE: u64 = 100_000_000; // 0.1 SOL per 1 NFT burn
-    const FOUR: u64 = 4;
-    const THREE: u64 = 3;
+    const ADDITIONAL_TX_FEE: u64 = 20_000_000; // 0.02 SOL per 1 NFT burn
     const ONE: u64 = 1;
+    const TWO: u64 = 2;
+    const TEN: u64 = 10;
 
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
         let bump = *ctx
@@ -26,24 +33,23 @@ pub mod adoptcontract {
         Ok(())
     }
 
-    pub fn burn<'info>(ctx: Context<'_, '_, '_, 'info, BurnNFT<'info>>) -> Result<()> {
+    pub fn burn_nfts<'info>(ctx: Context<'_, '_, '_, 'info, BurnNFT<'info>>) -> Result<()> {
         msg!("Burning NFTs...");
         let user_info = &mut ctx.accounts.user_burn_info;
-        user_info.nfts_burnt = 0;
 
         // Creates an iterator over the remaining accounts
         let mut remaining_accounts_iter = ctx.remaining_accounts.iter();
         let nfts_to_burn: u64 = (ctx.remaining_accounts.len() as u64)
-            .checked_div(FOUR)
+            .checked_div(TEN)
             .unwrap();
 
-        // Since we need to iterate over 4 "remaining accounts" at once, we need to slice all of them by 4
+        // Since we need to iterate over 5 "remaining accounts" at once, we need to slice all of them by 5
         for chunk in remaining_accounts_iter
             .by_ref()
             .collect::<Vec<_>>()
-            .chunks(FOUR as usize)
+            .chunks(TEN as usize)
         {
-            if chunk.len() != FOUR as usize {
+            if chunk.len() != TEN as usize {
                 return err!(ErrorCode::WrongBurnRemainingAccountsChunk);
             }
 
@@ -53,33 +59,73 @@ pub mod adoptcontract {
             let metadata_account = chunk[1];
             let edition_account = chunk[2];
             let ata = chunk[3];
+            let collection_metadata = chunk[4];
 
-            invoke(
-                &burn_nft(
-                    ctx.accounts.token_metadata_program.key(),
-                    metadata_account.key(),
-                    ctx.accounts.authority.key(),
-                    mint_account.key(),
-                    ata.key(),
-                    edition_account.key(),
-                    ctx.accounts.token_program.key(),
-                    None,
-                ),
-                &[
-                    ctx.accounts.token_metadata_program.to_account_info(),
-                    metadata_account.to_account_info(),
-                    ctx.accounts.authority.to_account_info(),
-                    mint_account.to_account_info(),
-                    ata.to_account_info(),
-                    edition_account.to_account_info(),
-                    ctx.accounts.token_program.to_account_info(),
-                ],
-            )?;
+            let amount_to_burn =
+                TokenAccount::try_deserialize(&mut &**ata.try_borrow_data().unwrap())
+                    .unwrap()
+                    .amount;
+
+            let mut builder = BurnV1Builder::new();
+            builder
+                .authority(ctx.accounts.authority.key())
+                .metadata(metadata_account.key())
+                .mint(mint_account.key())
+                .edition(Some(edition_account.key()))
+                .token(ata.key())
+                .collection_metadata(Some(collection_metadata.key()))
+                .sysvar_instructions(ctx.accounts.sysvar_instructions.key())
+                .amount(amount_to_burn);
+
+            let mut burn_infos = vec![
+                ctx.accounts.token_metadata_program.to_account_info(),
+                ctx.accounts.authority.to_account_info(),
+                metadata_account.to_account_info(),
+                mint_account.to_account_info(),
+                edition_account.to_account_info(),
+                ata.to_account_info(),
+                collection_metadata.to_account_info(),
+                ctx.accounts.sysvar_instructions.to_account_info(),
+            ];
+
+            let metadata: Metadata = Metadata::try_from(metadata_account)?;
+
+            if matches!(
+                metadata.token_standard,
+                Some(TokenStandard::NonFungibleEdition)
+            ) {
+                let master_edition_mint = chunk[5];
+                let master_edition = chunk[6];
+                let master_edition_ta = chunk[7];
+                let edition_marker = chunk[8];
+
+                builder.master_edition_mint(Some(master_edition_mint.key()));
+                builder.master_edition(Some(master_edition.key()));
+                builder.master_edition_token(Some(master_edition_ta.key()));
+                builder.edition_marker(Some(edition_marker.key()));
+
+                burn_infos.push(master_edition_mint.to_account_info());
+                burn_infos.push(master_edition.to_account_info());
+                burn_infos.push(master_edition_ta.to_account_info());
+                burn_infos.push(edition_marker.to_account_info());
+            }
+
+            if matches!(
+                metadata.token_standard,
+                Some(TokenStandard::ProgrammableNonFungible)
+            ) {
+                let token_record = chunk[9];
+                builder.token_record(Some(token_record.key()));
+                burn_infos.push(token_record.to_account_info());
+            }
+
+            let burn_instruction = builder.instruction();
+
+            invoke(&burn_instruction, &burn_infos)?;
 
             user_info.nfts_burnt = user_info.nfts_burnt.checked_add(ONE).unwrap();
         }
 
-        msg!("NFTs burnt: {}", user_info.nfts_burnt);
         if user_info.nfts_burnt <= 0 {
             return err!(ErrorCode::ZeroBurnsOccured);
         }
@@ -99,11 +145,97 @@ pub mod adoptcontract {
         Ok(())
     }
 
+    pub fn burn_tokens<'info>(ctx: Context<'_, '_, '_, 'info, BurnToken<'info>>) -> Result<()> {
+        msg!("Burning Tokens...");
+        let user_info = &mut ctx.accounts.user_burn_info;
+
+        // Creates an iterator over the remaining accounts
+        let mut remaining_accounts_iter = ctx.remaining_accounts.iter();
+        let mints_to_burn: u64 = (ctx.remaining_accounts.len() as u64)
+            .checked_div(TWO)
+            .unwrap();
+
+        // Since we need to iterate over 4 "remaining accounts" at once, we need to slice all of them by 4
+        for chunk in remaining_accounts_iter
+            .by_ref()
+            .collect::<Vec<_>>()
+            .chunks(TWO as usize)
+        {
+            if chunk.len() != TWO as usize {
+                return err!(ErrorCode::WrongBurnRemainingAccountsChunk);
+            }
+
+            // we don't need to check all of them, because Metaplex
+            // will do that for us and return an error if the layout is wrong
+            let mint_account = chunk[0];
+            let from = chunk[1];
+
+            let from_data =
+                TokenAccount::try_deserialize(&mut &**from.try_borrow_data().unwrap()).unwrap();
+
+            if from_data.is_frozen() {
+                let thaw_cpi_ctx = CpiContext::new(
+                    ctx.accounts.token_program.to_account_info(),
+                    ThawAccount {
+                        account: from.to_account_info(),
+                        mint: mint_account.to_account_info(),
+                        authority: ctx.accounts.authority.to_account_info(),
+                    },
+                );
+
+                thaw_account(thaw_cpi_ctx)?;
+            }
+
+            let burn_cpi_ctx = CpiContext::new(
+                ctx.accounts.token_program.to_account_info(),
+                Burn {
+                    mint: mint_account.to_account_info(),
+                    from: from.to_account_info(),
+                    authority: ctx.accounts.authority.to_account_info(),
+                },
+            );
+
+            let close_ata_cpi_ctx = CpiContext::new(
+                ctx.accounts.token_program.to_account_info(),
+                CloseAccount {
+                    account: from.to_account_info(),
+                    destination: ctx.accounts.authority.to_account_info(),
+                    authority: ctx.accounts.authority.to_account_info(),
+                },
+            );
+
+            burn(burn_cpi_ctx, from_data.amount)?;
+            close_account(close_ata_cpi_ctx)?;
+
+            user_info.nfts_burnt = user_info.nfts_burnt.checked_add(ONE).unwrap();
+        }
+
+        if user_info.nfts_burnt <= 0 {
+            return err!(ErrorCode::ZeroBurnsOccured);
+        }
+
+        // Charge additional fee
+        let fee: u64 = mints_to_burn * ADDITIONAL_TX_FEE;
+        msg!("Transferring additional fee...");
+
+        let cpi_accounts_fee = system_program::Transfer {
+            from: ctx.accounts.authority.to_account_info().clone(),
+            to: ctx.accounts.fees_receiver.to_account_info().clone(),
+        };
+        let cpi_program_fee = ctx.accounts.system_program.to_account_info();
+        let cpi_ctx_fee = CpiContext::new(cpi_program_fee, cpi_accounts_fee);
+        system_program::transfer(cpi_ctx_fee, fee)?;
+
+        Ok(())
+    }
+
     pub fn transfer_nft_from_pda<'info>(
         ctx: Context<'_, '_, '_, 'info, SendTicket<'info>>,
     ) -> Result<()> {
         msg!("Transferring tickets...");
+
         let user_info = &mut ctx.accounts.user_burn_info;
+        msg!("Current burns: {}", user_info.nfts_burnt);
 
         // allowed number of tickets to receive validation
         if user_info.nfts_burnt <= 0 as u64 {
@@ -121,56 +253,24 @@ pub mod adoptcontract {
         ];
         let signer = [&seeds[..]];
 
-        // Creates an iterator over the remaining accounts
-        let mut remaining_accounts_iter = ctx.remaining_accounts.iter();
-        let tickets_to_send: u64 = (ctx.remaining_accounts.len() as u64)
-            .checked_div(THREE)
-            .unwrap();
-
-        if user_info.nfts_burnt as u64 != tickets_to_send {
-            return err!(ErrorCode::BurnsNotEqualToTicketsToReceive);
-        }
-
-        // Since we need to iterate over 3 "remaining accounts" at once, we need to slice all of them by 3
-        for chunk in remaining_accounts_iter
-            .by_ref()
-            .collect::<Vec<_>>()
-            .chunks(THREE as usize)
-        {
-            if chunk.len() != THREE as usize {
-                return err!(ErrorCode::WrongTransferRemainingAccountsChunk);
-            }
-
-            // We don't need to check all of them, because Token Program
-            // will do that for us and return an error if the layout or authority is wrong
-            let mint_account = chunk[0];
-            let pda_ata = chunk[1];
-            let user_pda = chunk[2];
-
-            // Create context for the transfer instruction
-            let cpi_ctx = CpiContext::new_with_signer(
-                ctx.accounts.token_program.to_account_info(),
-                TransferChecked {
-                    from: pda_ata.to_account_info(),
-                    mint: mint_account.to_account_info(),
-                    to: user_pda.to_account_info(),
-                    authority: ctx.accounts.authority.to_account_info(),
-                },
-                &signer,
-            );
-
-            transfer_checked(cpi_ctx, 1, 0)?;
-
-            user_info.nfts_burnt = user_info.nfts_burnt.checked_sub(ONE).unwrap();
-        }
-
-        // Reset to 0 after a transfer is completed just in case
-        user_info.nfts_burnt = 0;
-        msg!("{} tickets were transferred", tickets_to_send);
-        msg!(
-            "Remaining burns after the transfer IX: {}",
-            user_info.nfts_burnt
+        // Create context for the transfer instruction
+        let cpi_ctx = CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(),
+            TransferChecked {
+                from: ctx.accounts.from.to_account_info(),
+                mint: ctx.accounts.tickets_mint.to_account_info(),
+                to: ctx.accounts.to.to_account_info(),
+                authority: ctx.accounts.authority.to_account_info(),
+            },
+            &signer,
         );
+
+        let amount_to_send: u64 = user_info.nfts_burnt;
+
+        transfer_checked(cpi_ctx, amount_to_send, 0)?;
+
+        // refresh the state
+        user_info.nfts_burnt = 0;
 
         Ok(())
     }
@@ -198,10 +298,10 @@ pub struct Initialize<'info> {
 pub struct BurnNFT<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
-    /// CHECK: we'll add a particular hard-coded address to the constraints
+    /// CHECK: constraint check
     #[account(
         mut,
-        address = Pubkey::try_from("SDCcPraNtvK4XPk5XASqYExWyEPrH9YAnEwm6Hcuz3U").unwrap() @ ErrorCode::WrongFeesReceiverAddress
+        address = Pubkey::try_from("C326k1ZK43BPfLGVzSBc8991L94a3X7XUvX9BSmJZLbb").unwrap() @ ErrorCode::WrongFeesReceiverAddress
     )]
     pub fees_receiver: AccountInfo<'info>,
     /// CHECK: address check
@@ -219,21 +319,66 @@ pub struct BurnNFT<'info> {
     pub user_burn_info: Account<'info, UserBurnInfo>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
+    /// CHECK: is checked by CPI
+    #[account(
+        constraint = ixs_check_id(sysvar_instructions.key)
+    )]
+    pub sysvar_instructions: AccountInfo<'info>,
+}
+
+#[derive(Accounts)]
+pub struct BurnToken<'info> {
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    /// CHECK: constraint check
+    #[account(
+        mut,
+        address = Pubkey::try_from("C326k1ZK43BPfLGVzSBc8991L94a3X7XUvX9BSmJZLbb").unwrap() @ ErrorCode::WrongFeesReceiverAddress
+    )]
+    pub fees_receiver: AccountInfo<'info>,
+    #[account(
+        init_if_needed,
+        payer = authority,
+        space = UserBurnInfo::SIZE,
+        seeds = [b"burnstate".as_ref(), authority.key.as_ref()],
+        bump,
+    )]
+    pub user_burn_info: Account<'info, UserBurnInfo>,
+    pub token_program: Program<'info, Token>,
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
 pub struct SendTicket<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
-    /// CHECK: constraint checks
     #[account(
         mut,
         seeds = [b"authority".as_ref()],
-        bump
-        // address = "address" @ WrongPDAAddress
+        bump,
+        address = Pubkey::try_from("5dSNUCqAsNLSAyEnviuYNVUxmHEiihxAvbKkiTFtVndB").unwrap() @ ErrorCode::WrongPDAAddress
     )]
     pub authority: Account<'info, NftsValutAccount>,
     #[account(
+        mut,
+        address = Pubkey::try_from("Ha8S2T77GegYpcWh3L9REjx4pPYpy6hdu3zW4ERgdsmP").unwrap() @ ErrorCode::WrongTicketsMint
+    )]
+    pub tickets_mint: Account<'info, Mint>,
+    #[account(
+        mut,
+        associated_token::mint = tickets_mint,
+        associated_token::authority = authority,
+    )]
+    pub from: Account<'info, TokenAccount>,
+    #[account(
+        init_if_needed,
+        payer = payer,
+        associated_token::mint = tickets_mint,
+        associated_token::authority = payer,
+    )]
+    pub to: Account<'info, TokenAccount>,
+    #[account(
+        mut,
         seeds = [b"burnstate".as_ref(), payer.key.as_ref()],
         bump,
     )]
@@ -270,8 +415,6 @@ pub enum ErrorCode {
     WrongTransferRemainingAccountsChunk,
     #[msg("Can't receive a ticket, not enough burns")]
     ZeroUserPdaBurns,
-    #[msg("Burns number isn't equal to number of tickets to receive")]
-    BurnsNotEqualToTicketsToReceive,
     #[msg("Wrong authority PDA address")]
     WrongPDAAddress,
     #[msg("Cannot get the bump of the Vault PDA")]
@@ -282,4 +425,6 @@ pub enum ErrorCode {
     WrongFeesReceiverAddress,
     #[msg("No burns occured, reverting transaction")]
     ZeroBurnsOccured,
+    #[msg("Wrong mint account of the kenl tickets")]
+    WrongTicketsMint,
 }

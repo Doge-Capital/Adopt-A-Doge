@@ -2,26 +2,27 @@
 seeds = false
 skip-lint = false
 [programs.localnet]
-adoptcontract = "AADPftBL56zsjQZcCU6XhCKGpq3C2eSLeWcW26rjmjnG"
+adoptcontract = "AAD24i9vjjW2RdrZvDpJptCfwfSPUQJtnKJ3kjjF8Kc8"
 
 [programs.devnet]
-adoptcontract = "AADPftBL56zsjQZcCU6XhCKGpq3C2eSLeWcW26rjmjnG"
+adoptcontract = "AAD24i9vjjW2RdrZvDpJptCfwfSPUQJtnKJ3kjjF8Kc8"
 
 [programs.mainnet]
-adoptcontract = "AADPftBL56zsjQZcCU6XhCKGpq3C2eSLeWcW26rjmjnG"
+adoptcontract = "AAD24i9vjjW2RdrZvDpJptCfwfSPUQJtnKJ3kjjF8Kc8"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "devnet"
+cluster = "mainnet"
 wallet = "/Users/elijah/.config/solana/id.json"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/adoptcontract.ts"
 # anchor run create-vault
 create-vault = "ts-node tests/initvault.ts" 
-mint-to-pda = "ts-node tests/mintToPda.ts" 
+mint-to-pda = "ts-node tests/mintToPda.ts"
+transfer-tickets = "ts-node tests/transferTicketsToPda"
 
 ## Necessary for test validator
 [test.validator]

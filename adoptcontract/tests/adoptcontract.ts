@@ -1,38 +1,46 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID, createTransferInstruction, getAssociatedTokenAddress, transfer } from "@solana/spl-token";
+import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from "@solana/spl-token";
 import { Metaplex, keypairIdentity, Nft } from "@metaplex-foundation/js";
 import { Adoptcontract } from "../target/types/adoptcontract";
 import { AccountMeta } from "@solana/web3.js";
+import * as fs from 'fs';
 
 describe("adoptcontract", () => {
     const provider = anchor.AnchorProvider.env();
-    const connection = provider.connection;
+
+    // we want this test to be run on devnet (maybe localnet) only
+    const connection = new anchor.web3.Connection("https://api.devnet.solana.com");
     anchor.setProvider(provider);
 
     const program = anchor.workspace.Adoptcontract as Program<Adoptcontract>;
-    let testKeypair: anchor.web3.Keypair = anchor.web3.Keypair.generate();
+
+    // let testKeypair: anchor.web3.Keypair = anchor.web3.Keypair.generate();
+
+    // create a testKeypair.json file with an array of bytes representing a keypair
+    const decodedKey = new Uint8Array(JSON.parse(fs.readFileSync("/Users/elijah/Adopt-A-Doge/adoptcontract/tests/testKeypair.json").toString()));
+    const testKeypair = anchor.web3.Keypair.fromSecretKey(decodedKey);
 
     const metaplex = Metaplex.make(connection)
         .use(keypairIdentity(testKeypair));
     const TOKEN_METADATA_PROGRAM_ID = new anchor.web3.PublicKey(
         "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
     );
+    const TICKETS_MINT_ADDRESS = new anchor.web3.PublicKey("4niSCMSdCw3Rh6dqjjEUeUUL4jhEyLAsKdFewZoZ4Z3Z");
 
     const mintToken = async (): Promise<[Nft, anchor.web3.PublicKey]> => {
         console.log("Minting an NFT...");
-        const { nft } = await metaplex.nfts().create({
-            uri: "",
+        const { nft, mintAddress, tokenAddress } = await metaplex.nfts().create({
+            uri: "https://raw.githubusercontent.com/Coding-and-Crypto/Solana-NFT-Marketplace/master/assets/example.json",
             name: "My NFT",
             sellerFeeBasisPoints: 500, // Represents 5.00%.
-        });
+        }, { commitment: "finalized" });
 
-        console.log("NFT created (mint): " + nft.address + "\n" + "NFT name: " + nft.name + "\n" + "NFT Metadata: " + nft.metadataAddress + "\n" + "NFT Edition: " + nft.edition.address);
+        console.log("NFT created (mint): " + mintAddress + "\n" + "NFT name: " + nft.name + "\n" + "NFT Metadata: " + nft.metadataAddress + "\n" + "NFT Edition: " + nft.edition.address);
 
-        const nftATA = await getAssociatedTokenAddress(nft.address, testKeypair.publicKey);
-        console.log("NFT Token Account: " + nftATA + "\n" + "*--------------------*" + "\n");
+        console.log("NFT Token Account: " + tokenAddress + "\n" + "*--------------------*" + "\n");
 
-        return [nft, nftATA];
+        return [nft, tokenAddress];
     };
 
     const mintNftToPda = async (): Promise<[Nft, anchor.web3.PublicKey, anchor.web3.PublicKey]> => {
@@ -85,7 +93,7 @@ describe("adoptcontract", () => {
         ];
     };
 
-    const createTransferAccountMeta = (ticketMint: anchor.web3.PublicKey, nftAta: anchor.web3.PublicKey, myAta: anchor.web3.PublicKey) : Array<AccountMeta> => {
+    const createTransferAccountMeta = (ticketMint: anchor.web3.PublicKey, nftAta: anchor.web3.PublicKey, myAta: anchor.web3.PublicKey): Array<AccountMeta> => {
         return [
             { pubkey: ticketMint, isWritable: true, isSigner: false },
             { pubkey: nftAta, isWritable: true, isSigner: false },
@@ -94,20 +102,20 @@ describe("adoptcontract", () => {
     };
 
     // use 1-2 times on Devnet, then comment it out to avoid the rate limit issue
-    before("SOL airdrop", async function () {
-        console.log("Airdropping SOL...");
+    // before("SOL airdrop", async function () {
+    //     console.log("Airdropping SOL...");
 
-        let airdrop_txhash = await connection.requestAirdrop(testKeypair.publicKey, .5 * anchor.web3.LAMPORTS_PER_SOL).catch(console.error);
-        const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
+    //     let airdrop_txhash = await connection.requestAirdrop(testKeypair.publicKey, .5 * anchor.web3.LAMPORTS_PER_SOL).catch(console.error);
+    //     const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
 
-        airdrop_txhash && await connection.confirmTransaction({
-            signature: airdrop_txhash,
-            blockhash,
-            lastValidBlockHeight
-        }, "finalized");
+    //     airdrop_txhash && await connection.confirmTransaction({
+    //         signature: airdrop_txhash,
+    //         blockhash,
+    //         lastValidBlockHeight
+    //     }, "finalized");
 
-        console.log(`Airdrop tx hash: ${airdrop_txhash}`);
-    });
+    //     console.log(`Airdrop tx hash: ${airdrop_txhash}`);
+    // });
 
     it("inits, burns and transfers a ticket", async () => {
         const vaultPDA = anchor.web3.PublicKey.findProgramAddressSync(
@@ -129,30 +137,28 @@ describe("adoptcontract", () => {
             // INIT instruction, uncomment if you havent initialized a PDA yet and add that to the main burn instruction
             // as "preInstruction([initTx])"
 
-            const initIx = await program.methods.initialize()
-                .accounts({
-                    signer: testKeypair.publicKey,
-                    pdaAccount: vaultPDA,
-                    systemProgram: anchor.web3.SystemProgram.programId,
-                })
-                .signers([testKeypair])
-                .instruction();
+            // const initIx = await program.methods.initialize()
+            //     .accounts({
+            //         signer: testKeypair.publicKey,
+            //         pdaAccount: vaultPDA,
+            //         systemProgram: anchor.web3.SystemProgram.programId,
+            //     })
+            //     .signers([testKeypair])
+            //     .instruction();
 
-            // TRANSFER ticket instruction
-            const [pdaNft1, pdaAta1, myAta1] = await mintNftToPda(); 
-            const [pdaNft2, pdaAta2, myAta2] = await mintNftToPda(); 
-            const [pdaNft3, pdaAta3, myAta3] = await mintNftToPda(); 
+            const ticketsAta = await getAssociatedTokenAddress(TICKETS_MINT_ADDRESS, vaultPDA, true);
+            const walletAta = await getAssociatedTokenAddress(TICKETS_MINT_ADDRESS, testKeypair.publicKey);
 
-            const ticket1AccountMeta = createTransferAccountMeta(pdaNft1.address, pdaAta1, myAta1);
-            const ticket2AccountMeta = createTransferAccountMeta(pdaNft2.address, pdaAta2, myAta2);
-            const ticket3AccountMeta = createTransferAccountMeta(pdaNft3.address, pdaAta3, myAta3);
-
-            const combinedTransferAccountMetas = [...ticket1AccountMeta, ...ticket2AccountMeta, ...ticket3AccountMeta];
+            console.log(ticketsAta.toBase58());
+            console.log(walletAta.toBase58());
 
             const transferTicketIx = await program.methods.transferNftFromPda()
                 .accounts({
                     payer: testKeypair.publicKey,
                     authority: vaultPDA,
+                    ticketsMint: TICKETS_MINT_ADDRESS,
+                    from: ticketsAta,
+                    to: walletAta,
                     tokenProgram: TOKEN_PROGRAM_ID,
                     userBurnInfo: userBurnInfo,
                     associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -160,7 +166,6 @@ describe("adoptcontract", () => {
                     rent: anchor.web3.SYSVAR_RENT_PUBKEY
                 })
                 .signers([testKeypair])
-                .remainingAccounts(combinedTransferAccountMetas)
                 .instruction();
 
             // main (BURN) instruction
@@ -175,7 +180,7 @@ describe("adoptcontract", () => {
             let combinedAccountMeta = [...mint1AccountMeta, ...mint2AccountMeta, ...mint3AccountMeta];
 
             console.log("Runs \"burn\" ix...");
-            const burnIx = await program.methods.burn()
+            const burnIx = await program.methods.burnNfts()
                 .accounts({
                     authority: testKeypair.publicKey,
                     feesReceiver: testKeypair.publicKey,
@@ -185,14 +190,12 @@ describe("adoptcontract", () => {
                     systemProgram: anchor.web3.SystemProgram.programId
                 })
                 .remainingAccounts(combinedAccountMeta)
-                .signers([testKeypair])
-                .preInstructions([initIx])
                 .postInstructions([transferTicketIx])
                 .rpc({
                     skipPreflight: true
                 });
 
-                console.log("Burn tx hash: ", burnIx);
+            console.log("Burn tx hash: ", burnIx);
         } catch (error) {
             console.log("An error occurred: ", error);
         }
@@ -212,7 +215,7 @@ describe("adoptcontract", () => {
         let combinedAccountMeta = [...mint1AccountMeta, ...mint2AccountMeta, ...mint3AccountMeta, ...mint4AccountMeta];
 
         console.log("Runs \"burn\" ix...");
-        const tx = await program.methods.burn()
+        const tx = await program.methods.burnNfts()
             .accounts({
                 authority: testKeypair.publicKey,
                 feesReceiver: testKeypair.publicKey,

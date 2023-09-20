@@ -1,66 +1,63 @@
-import { useWallet } from "@solana/wallet-adapter-react";
-import { Metadata, Metaplex, walletAdapterIdentity } from "@metaplex-foundation/js";
+import { DigitalAsset, fetchAllDigitalAssetByOwner } from "@metaplex-foundation/mpl-token-metadata";
+import { fromWeb3JsPublicKey } from "@metaplex-foundation/umi-web3js-adapters";
 import { FC, useEffect, useState } from "react";
 import { Image, Text } from "@nextui-org/react";
 import { BsCheck } from "react-icons/bs";
 import { useProgram } from "./Program";
+import noImg from "../public/assets/images/no-img.png";
+import { unwrapOption } from "@metaplex-foundation/umi";
+import { PublicKey } from "@metaplex-foundation/js";
 
-type NftData = [Metadata, string];
+type NftData = [DigitalAsset, string];
 
 export const FetchNft: FC<{
-    selectedNfts: Metadata[];
-    setSelectedNfts: (nfts: Metadata[]) => void;
+    selectedNfts: DigitalAsset[];
+    setSelectedNfts: (nfts: DigitalAsset[]) => void;
     burnSig: string;
 }> = ({ selectedNfts, setSelectedNfts, burnSig }) => {
     const [nftData, setNftData] = useState<null | NftData[]>(null);
     const [spinner, setSpinner] = useState<boolean>(false);
-    const { connection } = useProgram();
-    const wallet = useWallet();
-    const metaplex = Metaplex.make(connection).use(walletAdapterIdentity(wallet));
 
-    // fetch nfts
-    const fetchNfts = async () => {
+    const { umi, wallet } = useProgram();
+
+    const fetchUserAssets = async () => {
         setSpinner(true);
-        if (!wallet.connected) {
+        if (!wallet) {
             return;
         }
 
-        if (!wallet.publicKey) {
-            return;
-        }
-
-        // fetch NFTs for connected wallet
-        const userNfts = await metaplex.nfts().findAllByOwner({ owner: wallet.publicKey }) as Metadata[];
-
+        const userAssets = await fetchAllDigitalAssetByOwner(umi, fromWeb3JsPublicKey(wallet.publicKey), { tokenAmountFilter: (amount) => amount > 0 }).catch(err => console.error(err));
         let nftData: NftData[] = [];
 
-        // fetch off chain metadata for each NFT and set [[nft, image]...[nft, image]] array
-        for (const nft of userNfts) {
-            try {
-                let fetchResult = await fetch(nft.uri);
+        if (userAssets) {
+            await Promise.all(
+                userAssets.map(async (asset) => {
+                    if (asset.mint.decimals !== 0) return null;
+                    if (asset.metadata && unwrapOption(asset.metadata.collection)?.key === fromWeb3JsPublicKey(new PublicKey("2CNP3MVmCj5FEFja676PkvS8Rm7ZVCxdsPWkLgqHb87e"))) {
+                        return null;
+                    }
 
-                if (!fetchResult.ok) {
-                    console.error(`HTTP error! status: ${fetchResult.status}`);
-                    continue; // Skip this iteration and proceed to the next one
-                }
-
-                let json = await fetchResult.json();
-                nftData.push([nft, json.image]);
-            } catch (error) {
-                console.error("Fetch error: ", error);
-            }
+                    try {
+                        let response = await fetch(asset.metadata.uri);
+                        const data = await response.json();
+                        const imageField = data.image;
+                        nftData.push([asset, imageField]);
+                    }
+                    catch (error) {
+                        console.error(`Could not fetch json for ${asset.metadata.uri}: ${error}`);
+                    }
+                })
+            );
         }
 
-        // set state
         setNftData(nftData);
         setSpinner(false);
-    };
+    }
 
-    // fetch nfts when connected wallet changes
     useEffect(() => {
-        fetchNfts();
+        fetchUserAssets();
         setSelectedNfts([]);
-    }, [wallet.publicKey, burnSig]);
+    }, [wallet, burnSig]);
 
     if (spinner) {
         return (
@@ -107,13 +104,13 @@ export const FetchNft: FC<{
                                 )}
 
                                 <Image
-                                    src={nftData[1]}
+                                    src={nftData[1] ? nftData[1] : noImg.src}
                                     width={200}
                                     height={150}
                                     className="rounded-sm"
                                 />
                                 <Text h5 className="text-sm text-center font-semibold">
-                                    {nftData[0].name}
+                                    {nftData[0].metadata.name ? nftData[0].metadata.name : "Unknown"}
                                 </Text>
                             </div>
                         ))}

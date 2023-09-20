@@ -41,3 +41,7 @@ next-env.d.ts
 **/test-ledger
 **/.env
 **/testKeypair.json
+**/transferTicketsToPda.ts
+
+
+yarn.lock

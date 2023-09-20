@@ -2,12 +2,14 @@ import React from "react";
 import { FetchNft } from "../../context/FetchNFT";
 import { useState } from "react";
 import { useProgram } from "../../context/Program";
-import { Metadata } from "@metaplex-foundation/js";
+import { DigitalAsset } from "@metaplex-foundation/mpl-token-metadata";
 import { useRouter } from "next/router";
+import { toast } from "react-hot-toast";
+import Link from "next/link";
 
 function EligibleNfts() {
     const { burnNfts, wallet } = useProgram();
-    const [selectedNfts, setSelectedNfts] = useState<Metadata[]>([]);
+    const [selectedNfts, setSelectedNfts] = useState<DigitalAsset[]>([]);
     const [lastBurnSignature, setLastBurnSignature] = useState<string>("");
     const [loading, setLoading] = useState<boolean>(false);
     const router = useRouter();
@@ -22,13 +24,25 @@ function EligibleNfts() {
                 router.push("/congrats");
                 setLastBurnSignature(burnSignature);
                 console.log("Burn signature: " + burnSignature);
+                // toast.success(`Burn signature: ${burnSignature}`);
+
+                toast((t) => (
+                    <span className='px-2 py-1 overflow-auto text-base'>
+                        Burn details:
+                        <Link href={`https://explorer.solana.com/tx/${burnSignature}`} passHref>
+                            <a className='text-[#3E79FF] ml-1 hover:underline' target="_blank" rel="noopener noreferrer">click</a>
+                        </Link>
+                    </span>
+                ), { duration: 5000 });
             } catch (error) {
                 console.error("Burn error: " + error);
+                toast.error("An error occurred, check the console for details.");
             } finally {
                 setLoading(false);
-                setSelectedNfts([]);            }
+                setSelectedNfts([]);
+            }
         } else {
-            console.error("Wrong NFTs amount to burn: " + selectedNfts.length);
+            throw new Error("Wrong NFTs amount to burn: " + selectedNfts.length);
         }
     };
 
@@ -74,11 +88,11 @@ function EligibleNfts() {
                             <h3>NFTs Selected : {selectedNfts.length}</h3>
                             <h3>Tickets to receive : {selectedNfts.length}</h3>
                             <h3 className=" text-red-500 text-lg font-bold mt-10">
-                                Burn up to 3 NFTs at once.
+                                Burn up to 3 assets at once.
                             </h3>
                         </div>
                         <div className="flex flex-col gap-2 justify-center">
-                            <button className="text-lg bg-[#2278F9] rounded-sm text-white px-4 py-2 text-center border-2 border-[#2278F9] disabled:bg-slate-500 hover:bg-white hover:text-[#2278F9]" onClick={(e) => {handleBurnNftsButtonClick(e)}} disabled={loading}>
+                            <button className="text-lg bg-[#2278F9] rounded-sm text-white px-4 py-2 text-center border-2 border-[#2278F9] disabled:bg-slate-500 hover:bg-white hover:text-[#2278F9]" onClick={(e) => { handleBurnNftsButtonClick(e) }} disabled={loading}>
                                 {loading ? `Burning selected NFT(s)` : `Burn and receive tickets`}
                             </button>
                             <button className="text-lg rounded-sm text-[#2278F9] border-2 border-[#2278F9] px-4 py-2 text-center disabled:bg-slate-500 hover:bg-slate-200" onClick={handleUnselectAllbuttonClick} disabled={loading}>
