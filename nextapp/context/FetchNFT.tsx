@@ -1,5 +1,5 @@
-import { DigitalAsset, fetchAllDigitalAssetByOwner } from "@metaplex-foundation/mpl-token-metadata";
-import { fromWeb3JsPublicKey, toWeb3JsPublicKey } from "@metaplex-foundation/umi-web3js-adapters";
+import { DigitalAssetWithToken, TokenState, fetchAllDigitalAssetWithTokenByOwner } from "@metaplex-foundation/mpl-token-metadata";
+import { fromWeb3JsPublicKey } from "@metaplex-foundation/umi-web3js-adapters";
 import { FC, useEffect, useState } from "react";
 import { Image, Text } from "@nextui-org/react";
 import { BsCheck } from "react-icons/bs";
@@ -8,17 +8,17 @@ import noImg from "../public/assets/images/no-img.png";
 import { unwrapOption } from "@metaplex-foundation/umi";
 import { PublicKey } from "@metaplex-foundation/js";
 
-type NftData = [DigitalAsset, string];
+type NftData = [DigitalAssetWithToken, string];
 
 export const FetchNft: FC<{
-    selectedNfts: DigitalAsset[];
-    setSelectedNfts: (nfts: DigitalAsset[]) => void;
+    selectedNfts: DigitalAssetWithToken[];
+    setSelectedNfts: (nfts: DigitalAssetWithToken[]) => void;
     burnSwitch: boolean;
 }> = ({ selectedNfts, setSelectedNfts, burnSwitch }) => {
     const [nftData, setNftData] = useState<null | NftData[]>(null);
     const [spinner, setSpinner] = useState<boolean>(false);
 
-    const { umi, wallet, connection } = useProgram();
+    const { umi, wallet } = useProgram();
 
     const fetchUserAssets = async () => {
         setSpinner(true);
@@ -26,7 +26,7 @@ export const FetchNft: FC<{
             return;
         }
 
-        const userAssets = await fetchAllDigitalAssetByOwner(umi, fromWeb3JsPublicKey(wallet.publicKey), { tokenAmountFilter: (amount) => amount > 0 }).catch(err => console.error(err));
+        const userAssets = await fetchAllDigitalAssetWithTokenByOwner(umi, fromWeb3JsPublicKey(wallet.publicKey), { tokenAmountFilter: (amount) => amount > 0 }).catch(err => console.error(err));
         let nftData: NftData[] = [];
 
         if (userAssets) {
@@ -35,6 +35,12 @@ export const FetchNft: FC<{
                     if (asset.mint.decimals !== 0) return null;
                     if (asset.metadata && unwrapOption(asset.metadata.collection)?.key === fromWeb3JsPublicKey(new PublicKey("2CNP3MVmCj5FEFja676PkvS8Rm7ZVCxdsPWkLgqHb87e"))) {
                         return null;
+                    }
+
+                    if (unwrapOption(asset.metadata.tokenStandard) === 4) {
+                        if (asset.tokenRecord?.state !== TokenState.Unlocked) {
+                            return null;
+                        }
                     }
 
                     try {

@@ -2,14 +2,13 @@ import React from "react";
 import { FetchNft } from "../../context/FetchNFT";
 import { useState } from "react";
 import { useProgram } from "../../context/Program";
-import { DigitalAsset } from "@metaplex-foundation/mpl-token-metadata";
+import { DigitalAssetWithToken } from "@metaplex-foundation/mpl-token-metadata";
 import { useRouter } from "next/router";
 import { toast } from "react-hot-toast";
-import Link from "next/link";
 
 function EligibleNfts() {
     const { burnNfts, wallet } = useProgram();
-    const [selectedNfts, setSelectedNfts] = useState<DigitalAsset[]>([]);
+    const [selectedNfts, setSelectedNfts] = useState<DigitalAssetWithToken[]>([]);
     const [burnSwitch, setBurnSwitch] = useState<boolean>(false);
     const [loading, setLoading] = useState<boolean>(false);
     const router = useRouter();

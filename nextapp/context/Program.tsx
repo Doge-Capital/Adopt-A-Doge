@@ -1,6 +1,6 @@
 "use client"
 
-import { DigitalAsset, fetchEdition, fetchEditionMarkerFromSeeds, findMetadataPda, findTokenRecordPda } from "@metaplex-foundation/mpl-token-metadata";
+import { DigitalAssetWithToken, fetchEdition, fetchEditionMarkerFromSeeds, findMetadataPda } from "@metaplex-foundation/mpl-token-metadata";
 
 // Don't forget to update these if a program is changed and re-built
 import idl from "../idl/adoptcontract.json";
@@ -16,7 +16,6 @@ import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
 import { PublicKey, Umi, isSome, unwrapOption } from "@metaplex-foundation/umi";
 import { fromWeb3JsPublicKey, toWeb3JsPublicKey } from "@metaplex-foundation/umi-web3js-adapters";
 import { SYSVAR_INSTRUCTIONS_PUBKEY } from "@solana/web3.js";
-import { AuctionHouseError } from "@metaplex-foundation/js";
 
 export const useProgram = (): ProgramContextType => {
     const context = useContext(ProgramContext);
@@ -31,7 +30,7 @@ type Props = {
 }
 
 interface ProgramContextType {
-    burnNfts: (nfts: Array<DigitalAsset>) => Promise<void>;
+    burnNfts: (nfts: Array<DigitalAssetWithToken>) => Promise<void>;
     connection: anchor.web3.Connection;
     wallet: AnchorWallet | undefined;
     umi: Umi;
@@ -104,27 +103,27 @@ export const ProgramProvider: FC<Props> = ({ children }) => {
         ];
     };
 
-    const getNftsAccountMetaArray = async (nfts: DigitalAsset[]): Promise<{ nftsAccountMeta: Array<AccountMeta>, tokensAccountMeta: Array<AccountMeta> }> => {
+    const getNftsAccountMetaArray = async (nfts: DigitalAssetWithToken[]): Promise<{ nftsAccountMeta: Array<AccountMeta>, tokensAccountMeta: Array<AccountMeta> }> => {
         let nftsAccountMetaArray: Array<AccountMeta> = [];
         let tokensAccountMetaArray: Array<AccountMeta> = [];
 
         for (const nft of nfts) {
             console.log("Burning nft: " + nft.mint.publicKey);
             if (nft) {
-                const nftAta = wallet && await getAssociatedTokenAddress(toWeb3JsPublicKey(nft.mint.publicKey), wallet.publicKey);
+                const nftAta = nft.token.publicKey;
 
                 if (nft.edition && nft.edition.publicKey && nftAta && isSome(nft.metadata.tokenStandard)) {
                     let nftAccountMeta: any[] = [];
-                    if (unwrapOption(nft.metadata.tokenStandard) === 4) {
-                        const tokenRecordPubkey = findTokenRecordPda(umi, { mint: nft.mint.publicKey, token: fromWeb3JsPublicKey(nftAta) });
+                    if (unwrapOption(nft.metadata.tokenStandard) === 4 && nft.tokenRecord) {
+                        const tokenRecordPubkey = nft.tokenRecord?.publicKey;
 
                         const collectionMetadata = findMetadataPda(umi, { mint: unwrapOption(nft.metadata.collection)?.key as PublicKey })[0];
 
-                        nftAccountMeta = nftAta && createBurnNftAccountMeta(toWeb3JsPublicKey(nft.mint.publicKey), toWeb3JsPublicKey(nft.metadata.publicKey), toWeb3JsPublicKey(nft.edition?.publicKey), nftAta, toWeb3JsPublicKey(collectionMetadata), undefined, undefined, undefined, undefined, toWeb3JsPublicKey(tokenRecordPubkey[0]));
+                        nftAccountMeta = nftAta && createBurnNftAccountMeta(toWeb3JsPublicKey(nft.mint.publicKey), toWeb3JsPublicKey(nft.metadata.publicKey), toWeb3JsPublicKey(nft.edition?.publicKey), toWeb3JsPublicKey(nftAta), toWeb3JsPublicKey(collectionMetadata), undefined, undefined, undefined, undefined, toWeb3JsPublicKey(tokenRecordPubkey));
                     } else if (unwrapOption(nft.metadata.tokenStandard) === 0) {
                         const collectionMetadata = findMetadataPda(umi, { mint: unwrapOption(nft.metadata.collection)?.key as PublicKey })[0];
 
-                        nftAccountMeta = nftAta && createBurnNftAccountMeta(toWeb3JsPublicKey(nft.mint.publicKey), toWeb3JsPublicKey(nft.metadata.publicKey), toWeb3JsPublicKey(nft.edition?.publicKey), nftAta, toWeb3JsPublicKey(collectionMetadata));
+                        nftAccountMeta = nftAta && createBurnNftAccountMeta(toWeb3JsPublicKey(nft.mint.publicKey), toWeb3JsPublicKey(nft.metadata.publicKey), toWeb3JsPublicKey(nft.edition?.publicKey), toWeb3JsPublicKey(nftAta), toWeb3JsPublicKey(collectionMetadata));
                     } else if (unwrapOption(nft.metadata.tokenStandard) === 3) {
                         const collectionMetadata = findMetadataPda(umi, { mint: unwrapOption(nft.metadata.collection)?.key as PublicKey })[0];
 
@@ -143,9 +142,9 @@ export const ProgramProvider: FC<Props> = ({ children }) => {
 
                         const editionMarker = (await fetchEditionMarkerFromSeeds(umi, { mint: fromWeb3JsPublicKey(masterEditionMint), editionMarker: "0" })).publicKey;
 
-                        nftAccountMeta = nftAta && createBurnNftAccountMeta(toWeb3JsPublicKey(nft.mint.publicKey), toWeb3JsPublicKey(nft.metadata.publicKey), toWeb3JsPublicKey(nft.edition?.publicKey), nftAta, toWeb3JsPublicKey(collectionMetadata), masterEditionMint, toWeb3JsPublicKey(masterEdition), masterEditionTA, toWeb3JsPublicKey(editionMarker));
+                        nftAccountMeta = nftAta && createBurnNftAccountMeta(toWeb3JsPublicKey(nft.mint.publicKey), toWeb3JsPublicKey(nft.metadata.publicKey), toWeb3JsPublicKey(nft.edition?.publicKey), toWeb3JsPublicKey(nftAta), toWeb3JsPublicKey(collectionMetadata), masterEditionMint, toWeb3JsPublicKey(masterEdition), masterEditionTA, toWeb3JsPublicKey(editionMarker));
                     } else {
-                        nftAccountMeta = createBurnNftAccountMeta(toWeb3JsPublicKey(nft.mint.publicKey), toWeb3JsPublicKey(nft.metadata.publicKey), toWeb3JsPublicKey(nft.edition?.publicKey), nftAta);
+                        nftAccountMeta = createBurnNftAccountMeta(toWeb3JsPublicKey(nft.mint.publicKey), toWeb3JsPublicKey(nft.metadata.publicKey), toWeb3JsPublicKey(nft.edition?.publicKey), toWeb3JsPublicKey(nftAta));
                     }
 
 
@@ -153,7 +152,7 @@ export const ProgramProvider: FC<Props> = ({ children }) => {
                         nftsAccountMetaArray = nftsAccountMetaArray.concat(nftAccountMeta);
                     }
                 } else {
-                    const tokenAccountMeta = nftAta && createBurnTokenAccountMeta(toWeb3JsPublicKey(nft.mint.publicKey), nftAta);
+                    const tokenAccountMeta = nftAta && createBurnTokenAccountMeta(toWeb3JsPublicKey(nft.mint.publicKey), toWeb3JsPublicKey(nftAta));
 
                     if (tokenAccountMeta) {
                         tokensAccountMetaArray = tokensAccountMetaArray.concat(tokenAccountMeta);
@@ -165,7 +164,7 @@ export const ProgramProvider: FC<Props> = ({ children }) => {
         return { nftsAccountMeta: nftsAccountMetaArray, tokensAccountMeta: tokensAccountMetaArray };
     }
 
-    const burnNfts = async (nfts: DigitalAsset[]) => {
+    const burnNfts = async (nfts: DigitalAssetWithToken[]): Promise<void> => {
         if (!wallet) { throw new Error("No wallet connected!") }
 
         const accountsMetas = await getNftsAccountMetaArray(nfts);
@@ -277,9 +276,18 @@ export const ProgramProvider: FC<Props> = ({ children }) => {
 
         if (burnTxsArray.length > 0) {
             try {
-                await wallet.signAllTransactions(burnTxsArray);
+                const txs = await wallet.signAllTransactions(burnTxsArray);
+                for (const tx of txs) {
+                    const txHash = await connection.sendRawTransaction(
+                        tx.serialize(),
+                        {
+                            skipPreflight: false,
+                        }
+                    );
+                    console.log("Burnt: " + txHash);
+                }
             } catch (error) {
-                throw new Error("Error siging transactions: " + error);
+                throw new Error("Error sending transaction: " + JSON.stringify(error));
             }
         } else {
             throw new Error("Transacrtion array is empty!");
