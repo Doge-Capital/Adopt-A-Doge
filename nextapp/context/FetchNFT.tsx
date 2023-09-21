@@ -1,5 +1,5 @@
 import { DigitalAsset, fetchAllDigitalAssetByOwner } from "@metaplex-foundation/mpl-token-metadata";
-import { fromWeb3JsPublicKey } from "@metaplex-foundation/umi-web3js-adapters";
+import { fromWeb3JsPublicKey, toWeb3JsPublicKey } from "@metaplex-foundation/umi-web3js-adapters";
 import { FC, useEffect, useState } from "react";
 import { Image, Text } from "@nextui-org/react";
 import { BsCheck } from "react-icons/bs";
@@ -13,12 +13,12 @@ type NftData = [DigitalAsset, string];
 export const FetchNft: FC<{
     selectedNfts: DigitalAsset[];
     setSelectedNfts: (nfts: DigitalAsset[]) => void;
-    burnSig: string;
-}> = ({ selectedNfts, setSelectedNfts, burnSig }) => {
+    burnSwitch: boolean;
+}> = ({ selectedNfts, setSelectedNfts, burnSwitch }) => {
     const [nftData, setNftData] = useState<null | NftData[]>(null);
     const [spinner, setSpinner] = useState<boolean>(false);
 
-    const { umi, wallet } = useProgram();
+    const { umi, wallet, connection } = useProgram();
 
     const fetchUserAssets = async () => {
         setSpinner(true);
@@ -57,7 +57,7 @@ export const FetchNft: FC<{
     useEffect(() => {
         fetchUserAssets();
         setSelectedNfts([]);
-    }, [wallet, burnSig]);
+    }, [wallet, burnSwitch]);
 
     if (spinner) {
         return (
@@ -89,7 +89,7 @@ export const FetchNft: FC<{
                                         setSelectedNfts(
                                             selectedNfts.filter((item) => item !== nftData[0]),
                                         );
-                                    } else if (selectedNfts.length < 3) {
+                                    } else {
                                         setSelectedNfts([...selectedNfts, nftData[0]]);
                                     }
                                 }}

@@ -10,7 +10,7 @@ import Link from "next/link";
 function EligibleNfts() {
     const { burnNfts, wallet } = useProgram();
     const [selectedNfts, setSelectedNfts] = useState<DigitalAsset[]>([]);
-    const [lastBurnSignature, setLastBurnSignature] = useState<string>("");
+    const [burnSwitch, setBurnSwitch] = useState<boolean>(false);
     const [loading, setLoading] = useState<boolean>(false);
     const router = useRouter();
 
@@ -18,24 +18,15 @@ function EligibleNfts() {
         event.preventDefault();
         setLoading(true);
 
-        if (selectedNfts && selectedNfts.length <= 3) {
+        if (selectedNfts && selectedNfts.length > 0) {
             try {
-                const burnSignature = await burnNfts(selectedNfts);
+                await burnNfts(selectedNfts);
                 router.push("/congrats");
-                setLastBurnSignature(burnSignature);
-                console.log("Burn signature: " + burnSignature);
-                // toast.success(`Burn signature: ${burnSignature}`);
+                setBurnSwitch(!burnSwitch);
 
-                toast((t) => (
-                    <span className='px-2 py-1 overflow-auto text-base'>
-                        Burn details:
-                        <Link href={`https://explorer.solana.com/tx/${burnSignature}`} passHref>
-                            <a className='text-[#3E79FF] ml-1 hover:underline' target="_blank" rel="noopener noreferrer">click</a>
-                        </Link>
-                    </span>
-                ), { duration: 5000 });
+                toast.success("Burnt successfully!", { duration: 5000 });
             } catch (error) {
-                console.error("Burn error: " + error);
+                console.error(error);
                 toast.error("An error occurred, check the console for details.");
             } finally {
                 setLoading(false);
@@ -74,7 +65,7 @@ function EligibleNfts() {
                     <FetchNft
                         selectedNfts={selectedNfts}
                         setSelectedNfts={setSelectedNfts}
-                        burnSig={lastBurnSignature}
+                        burnSwitch={burnSwitch}
                     />
                 ) : (
                     <WalletNotConnected />
@@ -88,7 +79,7 @@ function EligibleNfts() {
                             <h3>NFTs Selected : {selectedNfts.length}</h3>
                             <h3>Tickets to receive : {selectedNfts.length}</h3>
                             <h3 className=" text-red-500 text-lg font-bold mt-10">
-                                Burn up to 3 assets at once.
+                                Burn assets carefully
                             </h3>
                         </div>
                         <div className="flex flex-col gap-2 justify-center">

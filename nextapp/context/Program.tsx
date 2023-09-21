@@ -10,12 +10,13 @@ import * as anchor from "@project-serum/anchor";
 import { AnchorWallet, useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
 import { AccountMeta, ConfirmedSignatureInfo } from "@solana/web3.js";
 import { FC, createContext, useContext, useEffect, useState } from "react";
-import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID, getAssociatedTokenAddress} from "@solana/spl-token";
+import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from "@solana/spl-token";
 import { toast } from "react-hot-toast";
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
-import { PublicKey, Umi, unwrapOption } from "@metaplex-foundation/umi";
+import { PublicKey, Umi, isSome, unwrapOption } from "@metaplex-foundation/umi";
 import { fromWeb3JsPublicKey, toWeb3JsPublicKey } from "@metaplex-foundation/umi-web3js-adapters";
 import { SYSVAR_INSTRUCTIONS_PUBKEY } from "@solana/web3.js";
+import { AuctionHouseError } from "@metaplex-foundation/js";
 
 export const useProgram = (): ProgramContextType => {
     const context = useContext(ProgramContext);
@@ -30,7 +31,7 @@ type Props = {
 }
 
 interface ProgramContextType {
-    burnNfts: (nfts: Array<DigitalAsset>) => Promise<string>;
+    burnNfts: (nfts: Array<DigitalAsset>) => Promise<void>;
     connection: anchor.web3.Connection;
     wallet: AnchorWallet | undefined;
     umi: Umi;
@@ -112,7 +113,7 @@ export const ProgramProvider: FC<Props> = ({ children }) => {
             if (nft) {
                 const nftAta = wallet && await getAssociatedTokenAddress(toWeb3JsPublicKey(nft.mint.publicKey), wallet.publicKey);
 
-                if (nft.edition && nft.edition.publicKey && nftAta) {
+                if (nft.edition && nft.edition.publicKey && nftAta && isSome(nft.metadata.tokenStandard)) {
                     let nftAccountMeta: any[] = [];
                     if (unwrapOption(nft.metadata.tokenStandard) === 4) {
                         const tokenRecordPubkey = findTokenRecordPda(umi, { mint: nft.mint.publicKey, token: fromWeb3JsPublicKey(nftAta) });
@@ -137,10 +138,8 @@ export const ProgramProvider: FC<Props> = ({ children }) => {
                         const masterEditionMint = new anchor.web3.PublicKey(masterEditionFirstIxParsed.parsed.info.newAccount);
 
                         const masterEditionMintData = await connection.getTokenLargestAccounts(masterEditionMint);
-                        console.log("Largest Token accs: " + JSON.stringify(masterEditionMintData));
 
                         const masterEditionTA = new anchor.web3.PublicKey(masterEditionMintData.value[0].address);
-                        console.log("TA found: " + JSON.stringify(masterEditionTA));
 
                         const editionMarker = (await fetchEditionMarkerFromSeeds(umi, { mint: fromWeb3JsPublicKey(masterEditionMint), editionMarker: "0" })).publicKey;
 
@@ -166,7 +165,7 @@ export const ProgramProvider: FC<Props> = ({ children }) => {
         return { nftsAccountMeta: nftsAccountMetaArray, tokensAccountMeta: tokensAccountMetaArray };
     }
 
-    const burnNfts = async (nfts: DigitalAsset[]): Promise<string> => {
+    const burnNfts = async (nfts: DigitalAsset[]) => {
         if (!wallet) { throw new Error("No wallet connected!") }
 
         const accountsMetas = await getNftsAccountMetaArray(nfts);
@@ -182,6 +181,8 @@ export const ProgramProvider: FC<Props> = ({ children }) => {
             throw new Error("Zero NFTs to be burnt, try one more time or contact the Adopt A Doge team");
         }
 
+        console.log("Accounts: " + JSON.stringify(accountsMetas));
+
         const userBurnInfo = anchor.web3.PublicKey.findProgramAddressSync(
             [
                 anchor.utils.bytes.utf8.encode("burnstate"),
@@ -190,61 +191,99 @@ export const ProgramProvider: FC<Props> = ({ children }) => {
             programId
         )[0];
 
-        let burnIxsArray: anchor.web3.TransactionInstruction[] = [];
+        let burnTxsArray: anchor.web3.Transaction[] = [];
 
         if (accountsMetas.nftsAccountMeta.length > 0) {
-            const burnNftsIx = await program.methods.burnNfts()
-                .accounts({
-                    authority: wallet.publicKey,
-                    feesReceiver: FEES_RECEIVER,
-                    userBurnInfo: userBurnInfo,
-                    tokenProgram: TOKEN_PROGRAM_ID,
-                    tokenMetadataProgram: TOKEN_METADATA_PROGRAM_ID,
-                    systemProgram: anchor.web3.SystemProgram.programId,
-                    sysvarInstructions: SYSVAR_INSTRUCTIONS_PUBKEY
-                })
-                .remainingAccounts(accountsMetas.nftsAccountMeta)
-                .instruction();
+            const chunkSize = 10;
 
-            burnIxsArray.push(burnNftsIx);
+            for (let i = 0; i < accountsMetas.nftsAccountMeta.length; i += chunkSize) {
+                const chunk = accountsMetas.nftsAccountMeta.slice(i, i + chunkSize);
+
+                const burnNftIx = await program.methods.burnNfts()
+                    .accounts({
+                        authority: wallet.publicKey,
+                        feesReceiver: FEES_RECEIVER,
+                        userBurnInfo: userBurnInfo,
+                        tokenProgram: TOKEN_PROGRAM_ID,
+                        tokenMetadataProgram: TOKEN_METADATA_PROGRAM_ID,
+                        systemProgram: anchor.web3.SystemProgram.programId,
+                        sysvarInstructions: SYSVAR_INSTRUCTIONS_PUBKEY
+                    })
+                    .remainingAccounts(chunk)
+                    .instruction();
+
+                const transferTicketsTx = await program.methods.transferNftFromPda()
+                    .accounts({
+                        payer: wallet.publicKey,
+                        authority: vaultPDA,
+                        ticketsMint: TICKETS_MINT_ADDRESS,
+                        from: ticketsAta,
+                        to: walletAta,
+                        tokenProgram: TOKEN_PROGRAM_ID,
+                        userBurnInfo: userBurnInfo,
+                        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+                        systemProgram: anchor.web3.SystemProgram.programId,
+                        rent: anchor.web3.SYSVAR_RENT_PUBKEY
+                    })
+                    .preInstructions([burnNftIx])
+                    .transaction();
+
+                const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("finalized");
+                const txWithBlockhash = new anchor.web3.Transaction({ blockhash, lastValidBlockHeight, feePayer: wallet.publicKey }).add(transferTicketsTx);
+
+                burnTxsArray.push(txWithBlockhash);
+            }
         }
 
         if (accountsMetas.tokensAccountMeta.length > 0) {
-            const burnTokensIx = await program.methods.burnTokens()
-                .accounts({
-                    authority: wallet.publicKey,
-                    feesReceiver: FEES_RECEIVER,
-                    userBurnInfo: userBurnInfo,
-                    tokenProgram: TOKEN_PROGRAM_ID,
-                    systemProgram: anchor.web3.SystemProgram.programId
-                })
-                .remainingAccounts(accountsMetas.tokensAccountMeta)
-                .instruction();
+            const chunkSize = 2;
 
-            burnIxsArray.push(burnTokensIx);
+            for (let i = 0; i < accountsMetas.tokensAccountMeta.length; i += chunkSize) {
+                const chunk = accountsMetas.tokensAccountMeta.slice(i, i + chunkSize);
+
+                const burnTokenIx = await program.methods.burnTokens()
+                    .accounts({
+                        authority: wallet.publicKey,
+                        feesReceiver: FEES_RECEIVER,
+                        userBurnInfo: userBurnInfo,
+                        tokenProgram: TOKEN_PROGRAM_ID,
+                        systemProgram: anchor.web3.SystemProgram.programId
+                    })
+                    .remainingAccounts(chunk)
+                    .instruction();
+
+                const transferTicketsTx = await program.methods.transferNftFromPda()
+                    .accounts({
+                        payer: wallet.publicKey,
+                        authority: vaultPDA,
+                        ticketsMint: TICKETS_MINT_ADDRESS,
+                        from: ticketsAta,
+                        to: walletAta,
+                        tokenProgram: TOKEN_PROGRAM_ID,
+                        userBurnInfo: userBurnInfo,
+                        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+                        systemProgram: anchor.web3.SystemProgram.programId,
+                        rent: anchor.web3.SYSVAR_RENT_PUBKEY
+                    })
+                    .preInstructions([burnTokenIx])
+                    .transaction();
+
+                const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("finalized");
+                const txWithBlockhash = new anchor.web3.Transaction({ blockhash, lastValidBlockHeight, feePayer: wallet.publicKey }).add(transferTicketsTx);
+
+                burnTxsArray.push(txWithBlockhash);
+            }
         }
 
-        const transferTicketsIx = await program.methods.transferNftFromPda()
-            .accounts({
-                payer: wallet.publicKey,
-                authority: vaultPDA,
-                ticketsMint: TICKETS_MINT_ADDRESS,
-                from: ticketsAta,
-                to: walletAta,
-                tokenProgram: TOKEN_PROGRAM_ID,
-                userBurnInfo: userBurnInfo,
-                associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-                systemProgram: anchor.web3.SystemProgram.programId,
-                rent: anchor.web3.SYSVAR_RENT_PUBKEY
-            })
-            .preInstructions(burnIxsArray)
-            .rpc({
-                skipPreflight: true
-            });
-
-        console.log(transferTicketsIx);
-        await connection.confirmTransaction(transferTicketsIx, "confirmed");
-        return transferTicketsIx as string;
+        if (burnTxsArray.length > 0) {
+            try {
+                await wallet.signAllTransactions(burnTxsArray);
+            } catch (error) {
+                throw new Error("Error siging transactions: " + error);
+            }
+        } else {
+            throw new Error("Transacrtion array is empty!");
+        }
     }
 
     return (
