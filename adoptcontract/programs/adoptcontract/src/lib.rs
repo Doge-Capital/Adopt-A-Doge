@@ -301,7 +301,7 @@ pub struct BurnNFT<'info> {
     /// CHECK: constraint check
     #[account(
         mut,
-        address = Pubkey::try_from("C326k1ZK43BPfLGVzSBc8991L94a3X7XUvX9BSmJZLbb").unwrap() @ ErrorCode::WrongFeesReceiverAddress
+        address = Pubkey::try_from("AkqAR9piNvqAEPUNNEvRvgEK8amvrq7teTxuch52kkgQ").unwrap() @ ErrorCode::WrongFeesReceiverAddress
     )]
     pub fees_receiver: AccountInfo<'info>,
     /// CHECK: address check
@@ -333,7 +333,7 @@ pub struct BurnToken<'info> {
     /// CHECK: constraint check
     #[account(
         mut,
-        address = Pubkey::try_from("C326k1ZK43BPfLGVzSBc8991L94a3X7XUvX9BSmJZLbb").unwrap() @ ErrorCode::WrongFeesReceiverAddress
+        address = Pubkey::try_from("AkqAR9piNvqAEPUNNEvRvgEK8amvrq7teTxuch52kkgQ").unwrap() @ ErrorCode::WrongFeesReceiverAddress
     )]
     pub fees_receiver: AccountInfo<'info>,
     #[account(
