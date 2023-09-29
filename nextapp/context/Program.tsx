@@ -49,7 +49,7 @@ export const ProgramProvider: FC<Props> = ({ children }) => {
         "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
     );
 
-    const FEES_RECEIVER = new anchor.web3.PublicKey("C326k1ZK43BPfLGVzSBc8991L94a3X7XUvX9BSmJZLbb");
+    const FEES_RECEIVER = new anchor.web3.PublicKey("AkqAR9piNvqAEPUNNEvRvgEK8amvrq7teTxuch52kkgQ");
     const TICKETS_MINT_ADDRESS = new anchor.web3.PublicKey("Ha8S2T77GegYpcWh3L9REjx4pPYpy6hdu3zW4ERgdsmP");
     // for devnet testing 
     // const TICKETS_MINT_ADDRESS = new anchor.web3.PublicKey("4niSCMSdCw3Rh6dqjjEUeUUL4jhEyLAsKdFewZoZ4Z3Z");
