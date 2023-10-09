@@ -18,7 +18,7 @@ export const FetchNft: FC<{
     const [nftData, setNftData] = useState<null | NftData[]>(null);
     const [spinner, setSpinner] = useState<boolean>(false);
 
-    const { umi, wallet } = useProgram();
+    const { umi, wallet, setNftsFetched } = useProgram();
 
     const fetchUserAssets = async () => {
         setSpinner(true);
@@ -58,6 +58,7 @@ export const FetchNft: FC<{
 
         setNftData(nftData);
         setSpinner(false);
+        setNftsFetched(true);
     }
 
     useEffect(() => {
@@ -102,10 +103,7 @@ export const FetchNft: FC<{
                             >
                                 {selectedNfts.includes(nftData[0]) && (
                                     <div className="absolute bg-[#79BD9A] z-20 rounded-full mt-[-0.5rem] ml-[-0.5rem] border-[5px] border-bg text-lg">
-                                        <Text color="white">
-                                            {" "}
-                                            <BsCheck />
-                                        </Text>
+                                        <BsCheck color="white" />
                                     </div>
                                 )}
 

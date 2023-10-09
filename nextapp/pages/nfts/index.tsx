@@ -7,7 +7,7 @@ import { useRouter } from "next/router";
 import { toast } from "react-hot-toast";
 
 function EligibleNfts() {
-    const { burnNfts, wallet } = useProgram();
+    const { burnNfts, wallet, nftsBurnt } = useProgram();
     const [selectedNfts, setSelectedNfts] = useState<DigitalAssetWithToken[]>([]);
     const [burnSwitch, setBurnSwitch] = useState<boolean>(false);
     const [loading, setLoading] = useState<boolean>(false);
@@ -57,7 +57,8 @@ function EligibleNfts() {
         <div className="bg-bg flex flex-col items-center min-h-screen">
             <div className="flex gap-20 px-12 overflow-hidden font-inter"></div>
             <div className="mx-5 mt-12 pb-7 container flex flex-col flex-wrap">
-                <h3 className="text-center my-4 font-semibold text-[1.625rem] opacity-75">
+                <h2 className="flex justify-center text-center font-semibold text-[2rem] opacity-75 text-[#2278F9] border-b-2 pb-2">Total assets burnt: {nftsBurnt.toString()}</h2>
+                <h3 className="text-center mt-6 mb-4 font-semibold text-[1.625rem] opacity-75">
                     Your Eligible NFTs
                 </h3>
                 {wallet ? (
