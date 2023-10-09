@@ -9,7 +9,7 @@ import { Adoptcontract } from "../idl/adoptcontract"
 import * as anchor from "@project-serum/anchor";
 import { AnchorWallet, useAnchorWallet, useConnection } from "@solana/wallet-adapter-react";
 import { AccountMeta, ConfirmedSignatureInfo } from "@solana/web3.js";
-import { FC, createContext, useContext, useEffect, useState } from "react";
+import { Dispatch, FC, SetStateAction, createContext, useContext, useEffect, useState } from "react";
 import { ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from "@solana/spl-token";
 import { toast } from "react-hot-toast";
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
@@ -34,12 +34,16 @@ interface ProgramContextType {
     connection: anchor.web3.Connection;
     wallet: AnchorWallet | undefined;
     umi: Umi;
+    nftsBurnt: Number;
+    setNftsFetched: Dispatch<SetStateAction<boolean>>;
 }
 
 const ProgramContext = createContext<ProgramContextType | undefined>(undefined);
 
 export const ProgramProvider: FC<Props> = ({ children }) => {
     const [program, setProgram] = useState<anchor.Program<Adoptcontract>>(null!);
+    const [nftsBurnt, setNftsBurnt] = useState<Number>(0);
+    const [nftsFetched, setNftsFetched] = useState<boolean>(false);
     const { connection } = useConnection();
     const wallet = useAnchorWallet();
     const umi = createUmi(connection.rpcEndpoint);
@@ -80,6 +84,42 @@ export const ProgramProvider: FC<Props> = ({ children }) => {
         }
         getProgram();
     }, [wallet]);
+
+    useEffect(() => {
+        async function fetchTotalBurns(): Promise<void> {
+            const heliusConnection = new anchor.web3.Connection("https://rpc.helius.xyz/?api-key=3c60b359-8acb-4d2f-8f64-b2f748436d45");
+            const programSignatures: string[] = (await heliusConnection.getConfirmedSignaturesForAddress2(programId)).map((programSignatures) => {
+                return programSignatures.signature;
+            });
+
+            let burnIxsCount: number = 0;
+
+            const transactions = await heliusConnection.getParsedTransactions(programSignatures);
+            for (const parsedTxMeta of transactions) {
+                const innerInstructionsArray = parsedTxMeta?.meta?.innerInstructions as anchor.web3.ParsedInnerInstruction[];
+
+                if (innerInstructionsArray) {
+                    for (const instructionsArray of innerInstructionsArray) {
+                        for (const instruction of instructionsArray.instructions) {
+                            const instructionTyped = instruction as anchor.web3.ParsedInstruction;
+                            if (instructionTyped.parsed && instructionTyped.parsed.type && instructionTyped.parsed.type === "burn") {
+                                burnIxsCount++;
+                            }
+                        }
+                    }
+                }
+            }
+
+
+            setNftsBurnt(burnIxsCount);
+        }
+
+        if (nftsFetched) {
+            fetchTotalBurns();
+        }
+    }, [nftsFetched]);
+
+
 
     const createBurnNftAccountMeta = (mint: anchor.web3.PublicKey, metadata: anchor.web3.PublicKey, edition: anchor.web3.PublicKey, ata: anchor.web3.PublicKey, collectionMetadata?: anchor.web3.PublicKey, masterEditionMint?: anchor.web3.PublicKey, masterEdition?: anchor.web3.PublicKey, masterEditionTA?: anchor.web3.PublicKey, editionMarker?: anchor.web3.PublicKey, tokenRecord?: anchor.web3.PublicKey): Array<AccountMeta> => {
         return [
@@ -179,8 +219,6 @@ export const ProgramProvider: FC<Props> = ({ children }) => {
         if (accountsMetas.nftsAccountMeta.length === 0 && accountsMetas.tokensAccountMeta.length === 0) {
             throw new Error("Zero NFTs to be burnt, try one more time or contact the Adopt A Doge team");
         }
-
-        console.log("Accounts: " + JSON.stringify(accountsMetas));
 
         const userBurnInfo = anchor.web3.PublicKey.findProgramAddressSync(
             [
@@ -295,7 +333,7 @@ export const ProgramProvider: FC<Props> = ({ children }) => {
     }
 
     return (
-        <ProgramContext.Provider value={{ burnNfts, connection, wallet, umi }}>
+        <ProgramContext.Provider value={{ burnNfts, connection, wallet, umi, nftsBurnt, setNftsFetched }}>
             {children}
         </ProgramContext.Provider>
     );
