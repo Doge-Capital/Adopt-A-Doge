@@ -50,7 +50,7 @@ export const FetchNft: FC<{
                         nftData.push([asset, imageField]);
                     }
                     catch (error) {
-                        console.error(`Could not fetch json for ${asset.metadata.uri}: ${error}`);
+                        console.warn(`Could not fetch json for ${asset.metadata.uri}: ${error}`);
                     }
                 })
             );
