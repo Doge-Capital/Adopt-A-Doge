@@ -3,14 +3,19 @@ import { Image } from "@nextui-org/react";
 import { useWindowSize } from "react-use";
 import Confetti from "react-confetti";
 import router from "next/router";
+import SpendTickets from "../../components/SpendTickets";
 
 function Congrats() {
     const { width, height } = useWindowSize(700, 375);
     return (
         <div className="h-full min-h-screen bg-[#f5f5f5] pt-2 sm:pt-14">
-            <Confetti width={width} height={height} numberOfPieces={50} className="w-screen"/>
+            <Confetti
+                width={width}
+                height={height}
+                numberOfPieces={50}
+                className="w-screen"
+            />
             <div className="flex justify-center items-center w-fit mx-auto font-inter">
-
                 <Image src="/assets/images/congrats1.png" width={120} />
                 <Image src="/assets/images/congrats3.png" width={120} />
                 <Image src="/assets/images/congrats1.png" width={120} />
@@ -25,9 +30,7 @@ function Congrats() {
             </div>
             <div className="flex flex-col sm:flex-row w-3/4 m-auto justify-center items-center">
                 <div className="flex text-xl bg-[#2278F9] px-10 rounded-full text-white w-fit mx-3 py-3 sm:py-4 hover:border-[#2278F9] border-2 hover:bg-white hover:text-[#2278F9] cursor-pointer mt-14 mb-4 sm:mb-14">
-                    <a href="https://www.kenl.live/raffles" target="_blank" rel="noopener noreferrer" className="text-center">
-                        Spend tickets
-                    </a>
+                    <SpendTickets />
                 </div>
                 <div
                     className="flex text-xl bg-[#2278F9] px-10 rounded-full text-white w-fit mx-3 py-3 sm:py-4 hover:border-[#2278F9] border-2 hover:bg-white hover:text-[#2278F9] cursor-pointer mt-4 mb-14 sm:mt-14"
