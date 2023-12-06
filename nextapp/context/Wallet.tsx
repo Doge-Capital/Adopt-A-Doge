@@ -19,8 +19,7 @@ type Props = {
 export const Wallet: FC<Props> = ({ children }) => {
     const network = WalletAdapterNetwork.Mainnet;
     // const endpoint = useMemo(() => clusterApiUrl(network), [network]);
-    // const endpoint = "https://rpc.helius.xyz/?api-key=3c60b359-8acb-4d2f-8f64-b2f748436d45";
-    const endpoint = "https://wild-quiet-resonance.solana-mainnet.discover.quiknode.pro/8433c1d3d9447eb63275ddf396717909c77fdb36/";
+    const endpoint = "https://mainnet.helius-rpc.com/?api-key=7b76e2ef-42ae-45b6-b3e8-b471b692cc18";
 
     const wallets = useMemo(
         () => [
