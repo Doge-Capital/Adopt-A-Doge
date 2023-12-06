@@ -1,6 +1,7 @@
 import React from "react";
 import { Image } from "@nextui-org/react";
 import { useRouter } from "next/router";
+import SpendTickets from "../components/SpendTickets";
 
 function Home() {
     const router = useRouter();
@@ -18,8 +19,8 @@ function Home() {
                         Earn with your rugged NFTs
                     </h3> */}
                     <p className="opacity-50 font-semibold text-xl text-center max-w-[40ch] flex mx-auto">
-                        A simple & secure way for people to have a chance to earn with their
-                        rugged NFTs
+                        A simple & secure way for people to have a chance to
+                        earn with their rugged NFTs
                     </p>
                 </div>
 
@@ -30,7 +31,9 @@ function Home() {
                             width={250}
                             className="hover:scale-[1.05]"
                         />
-                        <p className="text-lg font-medium">Give us your rugged NFTs</p>
+                        <p className="text-lg font-medium">
+                            Give us your rugged NFTs
+                        </p>
                         <p className="text-sm opacity-50 font-semibold mt-1">
                             Small fee attatched with the transaction
                         </p>
@@ -66,7 +69,9 @@ function Home() {
                             width={250}
                             className="hover:scale-[1.05]"
                         />
-                        <p className="text-lg font-medium">Participate in raffles</p>
+                        <p className="text-lg font-medium">
+                            Participate in raffles
+                        </p>
                         <p className="text-sm opacity-50 font-semibold mt-1">
                             Small fee attatched with the transaction
                         </p>
@@ -132,11 +137,16 @@ function Home() {
                     </div>
                 </div>
 
-                <div
-                    className="text-xl bg-[#2278F9] px-10 rounded-full text-white w-fit flex mx-auto py-4 hover:border-[#2278F9] border-2 hover:bg-white hover:text-[#2278F9] cursor-pointer my-5 sm:my-14"
-                    onClick={() => router.push("/nfts")}
-                >
-                    Get Started
+                <div className="flex flex-col md:flex-row md:space-x-16">
+                    <div className="text-xl bg-[#2278F9] px-10 rounded-full text-white w-fit flex mx-auto py-4 hover:border-[#2278F9] border-2 hover:bg-white hover:text-[#2278F9] cursor-pointer my-5 sm:my-14">
+                        <SpendTickets />
+                    </div>
+                    <div
+                        className="text-xl bg-[#2278F9] px-10 rounded-full text-white w-fit flex mx-auto py-4 hover:border-[#2278F9] border-2 hover:bg-white hover:text-[#2278F9] cursor-pointer my-5 sm:my-14"
+                        onClick={() => router.push("/nfts")}
+                    >
+                        Burn your NFTs
+                    </div>
                 </div>
             </div>
         </div>
